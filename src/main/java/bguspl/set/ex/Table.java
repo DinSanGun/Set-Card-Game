@@ -7,12 +7,17 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+//Student's imports
+import java.util.LinkedList;
+
 /**
  * This class contains the data that is visible to the player.
  *
  * @inv slotToCard[x] == y iff cardToSlot[y] == x
  */
 public class Table {
+
+    public static final int INIT_INDEX = 0; //The first index to consider when iterating.
 
     /**
      * The game environment object.
@@ -62,6 +67,7 @@ public class Table {
             StringBuilder sb = new StringBuilder().append("Hint: Set found: ");
             List<Integer> slots = Arrays.stream(set).mapToObj(card -> cardToSlot[card]).sorted().collect(Collectors.toList());
             int[][] features = env.util.cardsToFeatures(set);
+
             System.out.println(sb.append("slots: ").append(slots).append(" features: ").append(Arrays.deepToString(features)));
         });
     }
@@ -79,6 +85,7 @@ public class Table {
         return cards;
     }
 
+
     /**
      * Places a card on the table in a grid slot.
      * @param card - the card id to place in the slot.
@@ -95,6 +102,8 @@ public class Table {
         slotToCard[slot] = card;
 
         // TODO implement
+        env.ui.placeCard(card, slot);
+        // TODO implement
     }
 
     /**
@@ -107,6 +116,13 @@ public class Table {
         } catch (InterruptedException ignored) {}
 
         // TODO implement
+        int cardToRemove = slotToCard[slot];
+        slotToCard[slot] = null;
+        cardToSlot[cardToRemove] = null;
+        
+        env.ui.removeCard(slot);
+        // TODO implement
+
     }
 
     /**
@@ -116,6 +132,9 @@ public class Table {
      */
     public void placeToken(int player, int slot) {
         // TODO implement
+        env.ui.placeToken(player, slot);
+        // TODO implement
+
     }
 
     /**
@@ -126,6 +145,24 @@ public class Table {
      */
     public boolean removeToken(int player, int slot) {
         // TODO implement
+        env.ui.removeToken(player, slot);
+        // TODO implement
+
+
         return false;
     }
+
+
+    //Student's helper functions
+
+    public List<Integer> getEmptySlots(){
+        
+        List<Integer> nullSlots = new LinkedList<Integer>();
+        for (int i = INIT_INDEX; i < slotToCard.length; i++)
+            if (slotToCard[i] == null)
+                nullSlots.add(i);
+
+        return nullSlots;
+    }
+
 }

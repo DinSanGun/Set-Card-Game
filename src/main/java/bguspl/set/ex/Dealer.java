@@ -5,6 +5,8 @@ import bguspl.set.Env;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.Collections;
+
 
 /**
  * This class manages the dealer's threads and data
@@ -100,6 +102,20 @@ public class Dealer implements Runnable {
      */
     private void placeCardsOnTable() {
         // TODO implement
+        int numOfCardsOnTheTable = table.countCards();
+
+        if(deck.size() - numOfCardsOnTheTable < env.config.featureSize && !shouldFinish() ) //Checking if game should terminate
+            terminate(); //TODO - CHECK FOR AVAILABLE SETS FROM TABLE U DECK
+        
+        else {
+            List<Integer> emptySlots = table.getEmptySlots();
+
+            if(emptySlots.size() == env.config.tableSize && !deck.isEmpty())
+                shuffleDeck();
+
+            for(Integer slot : emptySlots)
+                table.placeCard(deck.remove(Table.INIT_INDEX) , slot);
+        }
     }
 
     /**
@@ -128,5 +144,11 @@ public class Dealer implements Runnable {
      */
     private void announceWinners() {
         // TODO implement
+    }
+
+
+    private void shuffleDeck(){
+
+        Collections.shuffle(deck);
     }
 }

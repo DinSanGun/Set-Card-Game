@@ -50,6 +50,17 @@ public class Player implements Runnable {
      */
     private int score;
 
+     /**
+     * The dealer that manages the player's game.
+     */
+    private final Dealer dealer;
+
+     /**
+     * A queue holding the player's card picks - which checks the set whenever 3 cards are chosen
+     *          TODO: implement a queue for this task, which is fed by key presses
+     */
+    // private final SpecialQueue<Action> // the action can be removing a card;
+
     /**
      * The class constructor.
      *
@@ -64,6 +75,7 @@ public class Player implements Runnable {
         this.table = table;
         this.id = id;
         this.human = human;
+        this.dealer = dealer;
     }
 
     /**
@@ -77,6 +89,7 @@ public class Player implements Runnable {
 
         while (!terminate) {
             // TODO implement main player loop
+            // REMOVE AN ACTION FROM THE QUEUE AND DISPATCH IT
         }
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
@@ -93,7 +106,9 @@ public class Player implements Runnable {
             while (!terminate) {
                 // TODO implement player key press simulator
                 try {
-                    synchronized (this) { wait(); }
+                    synchronized (this) {
+                         wait(); 
+                    }
                 } catch (InterruptedException ignored) {}
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
@@ -115,6 +130,7 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement
+        // INSERT ACTIONS INTO THE QUEUE
     }
 
     /**
