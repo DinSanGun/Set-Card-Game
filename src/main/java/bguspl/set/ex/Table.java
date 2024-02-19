@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 //Student's imports
 import java.util.LinkedList;
 
+//Added Estee to git
+
 /**
  * This class contains the data that is visible to the player.
  *
