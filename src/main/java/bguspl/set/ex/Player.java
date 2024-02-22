@@ -137,9 +137,9 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement
-        if(table.slotToToken[slot][id] != null) {
+        if(table.slotToTokens[slot][id] != null) {
 
-            if(table.slotToToken[slot][id] == false && tokensPlaced < 3) {
+            if(table.slotToTokens[slot][id] == false && tokensPlaced < 3) {
 
                 table.placeToken(id, slot);
                 tokensPlaced++;
@@ -148,7 +148,7 @@ public class Player implements Runnable {
                     int[] cards = new int[3];
                     int setIndex = 0;
                     for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
-                        if(table.slotToToken[i][id])
+                        if(table.slotToTokens[i][id])
                             cards[setIndex++] = table.slotToCard[i];
                     
                     dealer.testPlayerSet(id,cards);       
@@ -204,7 +204,7 @@ public class Player implements Runnable {
     private void removeAllTokensOfPlayer(int player) {
 
         for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
-            table.slotToToken[i][player] = false;
+            table.slotToTokens[i][player] = false;
         tokensPlaced = 0;
     }
 }

@@ -39,7 +39,7 @@ public class Table {
     /**
      * Mapping between a slot and the tokens placed on by the players (-1 if none).
      */
-    protected final Boolean[][] slotToToken; // slot per card (if any)
+    protected final Boolean[][] slotToTokens; // slot per card (if any)
 
     /**
      * Constructor for testing.
@@ -56,11 +56,11 @@ public class Table {
 
         int numOfCells = env.config.tableSize;
         int numOfPlayers = env.config.players;
-        slotToToken = new Boolean[numOfCells][numOfPlayers];
+        slotToTokens = new Boolean[numOfCells][numOfPlayers];
 
         for(int i = INIT_INDEX; i < numOfCells ; i++)
             for(int j = INIT_INDEX; j < numOfPlayers ; j++)
-                    slotToToken[i][j] = null;
+                    slotToTokens[i][j] = null;
 
     }
 
@@ -118,7 +118,7 @@ public class Table {
         slotToCard[slot] = card;
         
         for(int i = INIT_INDEX; i < env.config.players; i++)
-            slotToToken[slot][i] = false;
+            slotToTokens[slot][i] = false;
 
         // TODO implement
         env.ui.placeCard(card, slot);
@@ -140,7 +140,7 @@ public class Table {
         cardToSlot[cardToRemove] = null;
 
         for(int i = INIT_INDEX; i < env.config.players; i++)
-            slotToToken[slot][i] = null;
+            slotToTokens[slot][i] = null;
         
         env.ui.removeCard(slot);
         // TODO implement
@@ -154,8 +154,8 @@ public class Table {
      */
     public void placeToken(int player, int slot) {
         // TODO implement
-        if(slotToToken[slot][player] == false){
-            slotToToken[slot][player] = true;
+        if(slotToTokens[slot][player] == false){
+            slotToTokens[slot][player] = true;
             env.ui.placeToken(player, slot);
         }
     }
@@ -168,8 +168,8 @@ public class Table {
      */
     public boolean removeToken(int player, int slot) {
         // TODO implement
-        if(slotToToken[slot][player] == true){
-            slotToToken[slot][player] = false;
+        if(slotToTokens[slot][player] == true){
+            slotToTokens[slot][player] = false;
             env.ui.removeToken(player, slot);
             return true;
         }
