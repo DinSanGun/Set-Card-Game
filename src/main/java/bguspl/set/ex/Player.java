@@ -81,6 +81,7 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
         this.dealer = dealer;
+        score = 0;
         tokensPlaced = 0;
     }
 
@@ -137,9 +138,21 @@ public class Player implements Runnable {
     public void keyPressed(int slot) {
         // TODO implement
         if(table.slotToToken[slot][id] != null) {
+
             if(table.slotToToken[slot][id] == false && tokensPlaced < 3) {
+
                 table.placeToken(id, slot);
                 tokensPlaced++;
+
+                if(tokensPlaced == 3) {
+                    int[] cards = new int[3];
+                    int setIndex = 0;
+                    for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
+                        if(table.slotToToken[i][id])
+                            cards[setIndex++] = table.slotToCard[i];
+                    
+                    dealer.testPlayerSet(id,cards);       
+                }
             }
             else {
                 boolean success = table.removeToken(id, slot);
@@ -159,9 +172,11 @@ public class Player implements Runnable {
      */
     public void point() {
         // TODO implement
-
+    
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
+
+        removeAllTokensOfPlayer(id);
     }
 
     /**
@@ -169,9 +184,27 @@ public class Player implements Runnable {
      */
     public void penalty() {
         // TODO implement
+        env.ui.setFreeze(id, env.config.penaltyFreezeMillis);
+
     }
 
+    /**
+     * @return Current's player score.
+     */
     public int score() {
         return score;
+    }
+
+    /**
+     * Removes all the tokens that have been placed by a specific player
+     * @param - the player's ID.
+     * @post - the player's tokens are removed from the table
+     * @post - tokensPlace == 0
+     */
+    private void removeAllTokensOfPlayer(int player) {
+
+        for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
+            table.slotToToken[i][player] = false;
+        tokensPlaced = 0;
     }
 }

@@ -61,7 +61,7 @@ public class Table {
         for(int i = INIT_INDEX; i < numOfCells ; i++)
             for(int j = INIT_INDEX; j < numOfPlayers ; j++)
                     slotToToken[i][j] = null;
-                    
+
     }
 
     /**

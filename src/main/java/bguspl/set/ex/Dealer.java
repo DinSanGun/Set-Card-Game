@@ -37,12 +37,15 @@ public class Dealer implements Runnable {
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
-    private long reshuffleTime = Long.MAX_VALUE; //System.currentTimeMillis() + env.config.ForgotTheOptionName
+    private long reshuffleTime;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
         this.players = players;
+
+        reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
     }
 
@@ -146,9 +149,31 @@ public class Dealer implements Runnable {
         // TODO implement
     }
 
-
+    /**
+     * Shuffles the deck.
+     */
     private void shuffleDeck(){
 
         Collections.shuffle(deck);
+    }
+
+    /**
+     * Tests if the player has assembled a valid set.
+     * If it did - award the player a point.
+     * If it didn't - penalize the player.
+     */
+    public void testPlayerSet(int player, int[] cards) {
+
+        if(env.util.testSet(cards)) {
+
+            players[player].point();
+
+            for(int card : cards)
+                table.removeCard( table.cardToSlot[card] );
+
+            placeCardsOnTable();
+        }
+        else
+            players[player].penalty();
     }
 }
