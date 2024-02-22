@@ -55,6 +55,11 @@ public class Player implements Runnable {
      */
     private final Dealer dealer;
 
+    /**
+     * The number of tokens currently placed on the table by this player.
+     */
+    private int tokensPlaced;
+
      /**
      * A queue holding the player's card picks - which checks the set whenever 3 cards are chosen
      *          TODO: implement a queue for this task, which is fed by key presses
@@ -76,6 +81,7 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
         this.dealer = dealer;
+        tokensPlaced = 0;
     }
 
     /**
@@ -130,6 +136,18 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement
+        if(table.slotToToken[slot][id] != null) {
+            if(table.slotToToken[slot][id] == false && tokensPlaced < 3) {
+                table.placeToken(id, slot);
+                tokensPlaced++;
+            }
+            else {
+                boolean success = table.removeToken(id, slot);
+                if(success)
+                    tokensPlaced--;
+            }
+        }
+
         // INSERT ACTIONS INTO THE QUEUE
     }
 

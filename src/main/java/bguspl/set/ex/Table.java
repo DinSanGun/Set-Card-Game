@@ -35,6 +35,11 @@ public class Table {
     protected final Integer[] cardToSlot; // slot per card (if any)
 
     /**
+     * Mapping between a slot and the tokens placed on by the players (-1 if none).
+     */
+    protected final Boolean[][] slotToToken; // slot per card (if any)
+
+    /**
      * Constructor for testing.
      *
      * @param env        - the game environment objects.
@@ -46,6 +51,15 @@ public class Table {
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
+
+        int numOfCells = env.config.tableSize;
+        int numOfPlayers = env.config.players;
+        slotToToken = new Boolean[numOfCells][numOfPlayers];
+
+        for(int i = INIT_INDEX; i < numOfCells ; i++)
+            for(int j = INIT_INDEX; j < numOfPlayers ; j++)
+                    slotToToken[i][j] = null;
+                    
     }
 
     /**
@@ -100,6 +114,9 @@ public class Table {
 
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
+        
+        for(int i = INIT_INDEX; i < env.config.players; i++)
+            slotToToken[slot][i] = false;
 
         // TODO implement
         env.ui.placeCard(card, slot);
@@ -119,6 +136,9 @@ public class Table {
         int cardToRemove = slotToCard[slot];
         slotToCard[slot] = null;
         cardToSlot[cardToRemove] = null;
+
+        for(int i = INIT_INDEX; i < env.config.players; i++)
+            slotToToken[slot][i] = null;
         
         env.ui.removeCard(slot);
         // TODO implement
@@ -132,9 +152,10 @@ public class Table {
      */
     public void placeToken(int player, int slot) {
         // TODO implement
-        env.ui.placeToken(player, slot);
-        // TODO implement
-
+        if(slotToToken[slot][player] == false){
+            slotToToken[slot][player] = true;
+            env.ui.placeToken(player, slot);
+        }
     }
 
     /**
@@ -145,15 +166,22 @@ public class Table {
      */
     public boolean removeToken(int player, int slot) {
         // TODO implement
-        env.ui.removeToken(player, slot);
-        // TODO implement
-
+        if(slotToToken[slot][player] == true){
+            slotToToken[slot][player] = false;
+            env.ui.removeToken(player, slot);
+            return true;
+        }
 
         return false;
     }
 
 
     //Student's helper functions
+
+    /**
+     * 
+     * @return - a list of integers, representing the indexes of all the empty slots in the table.
+     */
 
     public List<Integer> getEmptySlots(){
         
