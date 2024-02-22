@@ -64,7 +64,7 @@ public class Player implements Runnable {
      * A queue holding the player's card picks - which checks the set whenever 3 cards are chosen
      *          TODO: implement a queue for this task, which is fed by key presses
      */
-    // private final SpecialQueue<Action> // the action can be removing a card;
+    private final BoundedQueue<Action> actionQueue; // the action can be removing a card;
 
     /**
      * The class constructor.
@@ -83,6 +83,7 @@ public class Player implements Runnable {
         this.dealer = dealer;
         score = 0;
         tokensPlaced = 0;
+        actionQueue = new BoundedQueue<Action>(env.config.featureSize);
     }
 
     /**
