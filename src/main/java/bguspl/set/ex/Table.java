@@ -6,11 +6,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-//Student's imports
-import java.util.LinkedList;
-
-//Added Estee to git
+,
+//------------------ our imports -------------------------------
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+//--------------------------------------------------------------
 
 /**
  * This class contains the data that is visible to the player.
@@ -40,6 +40,10 @@ public class Table {
      * Mapping between a slot and the tokens placed on by the players (-1 if none).
      */
     protected final Boolean[][] slotToTokens; // slot per card (if any)
+    /**
+     * This queue will store the sets that need to be checked
+     */
+    protected BlockingQueue<Integer> queueOfSets;
 
     /**
      * Constructor for testing.
@@ -54,14 +58,8 @@ public class Table {
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
 
-        int numOfCells = env.config.tableSize;
-        int numOfPlayers = env.config.players;
-        slotToTokens = new Boolean[numOfCells][numOfPlayers];
-
-        for(int i = INIT_INDEX; i < numOfCells ; i++)
-            for(int j = INIT_INDEX; j < numOfPlayers ; j++)
-                    slotToTokens[i][j] = null;
-
+        slotToTokens = new Boolean[env.config.tableSize][env.config.players];
+        queueOfSets = new LinkedBlockingQueue<Integer>();
     }
 
     /**
@@ -72,6 +70,7 @@ public class Table {
     public Table(Env env) {
 
         this(env, new Integer[env.config.tableSize], new Integer[env.config.deckSize]);
+        queueOfSets = new LinkedBlockingQueue<Integer>();
     }
 
     /**
@@ -109,6 +108,9 @@ public class Table {
      *
      * @post - the card placed is on the table, in the assigned slot.
      */
+    public void placeCard(int cardToPlace) {
+        placeCard(cardToPlace, getEmptySlot());
+    }
     public void placeCard(int card, int slot) {
         try {
             Thread.sleep(env.config.tableDelayMillis);
@@ -116,13 +118,7 @@ public class Table {
 
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
-        
-        for(int i = INIT_INDEX; i < env.config.players; i++)
-            slotToTokens[slot][i] = false;
-
-        // TODO implement
         env.ui.placeCard(card, slot);
-        // TODO implement
     }
 
     /**
@@ -133,18 +129,10 @@ public class Table {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
-
-        // TODO implement
+        env.ui.removeCard(slot);
         int cardToRemove = slotToCard[slot];
         slotToCard[slot] = null;
         cardToSlot[cardToRemove] = null;
-
-        for(int i = INIT_INDEX; i < env.config.players; i++)
-            slotToTokens[slot][i] = null;
-        
-        env.ui.removeCard(slot);
-        // TODO implement
-
     }
 
     /**
@@ -153,10 +141,9 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
     public void placeToken(int player, int slot) {
-        // TODO implement
-        if(slotToTokens[slot][player] == false){
-            slotToTokens[slot][player] = true;
+        if(slotToCard[slot] != null){
             env.ui.placeToken(player, slot);
+            slotToTokens[player][slot] = true;
         }
     }
 
@@ -167,8 +154,7 @@ public class Table {
      * @return       - true iff a token was successfully removed.
      */
     public boolean removeToken(int player, int slot) {
-        // TODO implement
-        if(slotToTokens[slot][player] == true){
+        if(slotToCard[slot] != null){
             slotToTokens[slot][player] = false;
             env.ui.removeToken(player, slot);
             return true;
@@ -178,21 +164,25 @@ public class Table {
     }
 
 
-    //Student's helper functions
+    //===========================================================
+    //                  added by us 
+    //===========================================================
 
     /**
      * 
      * @return - a list of integers, representing the indexes of all the empty slots in the table.
      */
 
-    public List<Integer> getEmptySlots(){
+    private int getEmptySlot(){
         
-        List<Integer> nullSlots = new LinkedList<Integer>();
-        for (int i = INIT_INDEX; i < slotToCard.length; i++)
-            if (slotToCard[i] == null)
-                nullSlots.add(i);
-
-        return nullSlots;
+        int possibleSlot = -1;
+        for (int i = INIT_INDEX; i < slotToCard.length; i++){
+            if (slotToCard[i] == null){
+                possibleSlot = i;
+                break;
+            }
+        }
+        return possibleSlot;
     }
 
 }

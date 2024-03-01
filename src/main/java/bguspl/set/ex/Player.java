@@ -2,6 +2,15 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+//------------------ our imports -------------------------------
+import java.util.Queue;
+import java.util.Random;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.List;
+import java.util.LinkedList;
+import java.util.logging.Level;
+//--------------------------------------------------------------
+
 /**
  * This class manages the players' threads and data
  *
@@ -50,21 +59,40 @@ public class Player implements Runnable {
      */
     private int score;
 
+    //===========================================================
+    //                  added by us
+    //===========================================================
+
+
      /**
-     * The dealer that manages the player's game.
+     * The dealer that manages the player's game. -> we added that 
      */
     private final Dealer dealer;
 
     /**
-     * The number of tokens currently placed on the table by this player.
+     * The number of tokens currently placed on the table by this player so far. -> we added that
      */
-    private int tokensPlaced;
+    public int tokensPlaced = 0; 
 
      /**
-     * A queue holding the player's card picks - which checks the set whenever 3 cards are chosen
-     *          TODO: implement a queue for this task, which is fed by key presses
+     * Holds the key presses made by the player (latest 3)
      */
-    private final BoundedQueue<Action> actionQueue; // the action can be removing a card;
+    private ArrayBlockingQueue<Integer> keyPressedQueue; 
+     /**
+     * This array indicates what slots the player chose to put his tokens.
+     */
+    private int[] tokens = {-1, -1, -1};
+    private final int SETSIZE = 3;
+    private volatile int penalty = 0;
+    private final long SECOND = 1000;
+    private Object playerLock = new Object();
+
+    //===========================================================
+    //                  up until here
+    //===========================================================
+
+
+
 
     /**
      * The class constructor.
@@ -81,9 +109,8 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
         this.dealer = dealer;
-        score = 0;
-        tokensPlaced = 0;
-        actionQueue = new BoundedQueue<Action>(env.config.featureSize);
+        this.keyPressedQueue = new ArrayBlockingQueue<Integer>(SETSIZE);
+        this.terminate = false;
     }
 
     /**
@@ -93,13 +120,21 @@ public class Player implements Runnable {
     public void run() {
         playerThread = Thread.currentThread();
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
-        if (!human) createArtificialIntelligence();
+        
+        if (!human){
+            createArtificialIntelligence();
+        }
 
         while (!terminate) {
             // TODO implement main player loop
             // REMOVE AN ACTION FROM THE QUEUE AND DISPATCH IT
         }
-        if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
+
+        if (!human) {
+            try { 
+                aiThread.join(); 
+            } catch (InterruptedException ignored) {}
+        }
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
     }
 
@@ -112,12 +147,12 @@ public class Player implements Runnable {
         aiThread = new Thread(() -> {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
             while (!terminate) {
-                // TODO implement player key press simulator
-                try {
-                    synchronized (this) {
-                         wait(); 
-                    }
-                } catch (InterruptedException ignored) {}
+                //try {
+                //    synchronized (this) {
+                //         wait(); 
+                //     }
+                // } catch (InterruptedException ignored) {}
+                keyPressed((int)(Math.random() * (env.config.tableSize)));
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
@@ -128,7 +163,7 @@ public class Player implements Runnable {
      * Called when the game should be terminated.
      */
     public void terminate() {
-        // TODO implement
+        terminate = true;
     }
 
     /**
@@ -195,6 +230,12 @@ public class Player implements Runnable {
     public int score() {
         return score;
     }
+
+
+//===========================================================
+//                  added by us 
+//===========================================================
+
 
     /**
      * Removes all the tokens that have been placed by a specific player
