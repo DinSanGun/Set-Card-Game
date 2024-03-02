@@ -120,10 +120,8 @@ public class Dealer implements Runnable {
                 int[] setToTest = table.getPlayerCards(player);
 
                 if(setToTest != null){
-                    System.out.println("player " + player +" require dealer check");
 
                     if( env.util.testSet(setToTest) ){
-                        System.out.println("player " + player +" has set");
 
                         players[player].point();
                         for(int card : setToTest)
@@ -237,7 +235,6 @@ public class Dealer implements Runnable {
     public void awake(){
 
         dealerThread.interrupt();
-        System.out.println("Woke up");
     }
 
 
