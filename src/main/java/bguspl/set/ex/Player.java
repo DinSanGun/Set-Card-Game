@@ -261,7 +261,7 @@ public class Player implements Runnable {
             
             dealer.awake();
 
-            synchronized(table.lock) {
+            synchronized(this) {
                 try{
                     playerThread.wait(); //Player's thread sleeps until dealer done checking set and replying accordingly
                 }

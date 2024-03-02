@@ -48,10 +48,6 @@ public class Table {
      * Mapping between a player and the number of tokens placed on the table by the player.
      */
     protected final int[] playerToNumOfTokens;
-    /**
-     * An object used for synchronizing.
-     */
-    protected final Object lock; 
 
 
     //===========================================================
@@ -78,8 +74,6 @@ public class Table {
 
         for(Boolean[] slot : slotPlayerToToken)
             Arrays.fill(slot , false);
-
-        lock = new Object();
 
     }
 
@@ -168,14 +162,11 @@ public class Table {
 
         if(slotToCard[slot] != null && playerToNumOfTokens[player] < 3){
 
-            synchronized(lock){
 
                 slotPlayerToToken[slot][player] = true;
                 playerToNumOfTokens[player]++;
 
                 env.ui.placeToken(player, slot);
-
-            }
         }
     }
 
