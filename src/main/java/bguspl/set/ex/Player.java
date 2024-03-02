@@ -121,9 +121,8 @@ public class Player implements Runnable {
         playerThread = Thread.currentThread();
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
         
-        if (!human){
+        if (!human)
             createArtificialIntelligence();
-        }
 
         while (!terminate) {
             // TODO implement main player loop
