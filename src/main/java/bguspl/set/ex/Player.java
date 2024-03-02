@@ -65,11 +65,6 @@ public class Player implements Runnable {
      */
     private final Dealer dealer;
 
-    /**
-     * The number of tokens currently placed on the table by this player so far. -> we added that
-     */
-    public int tokensPlaced; 
-
      /**
      * Holds the actions made by the key presses of the player (last 3)
      */
@@ -100,7 +95,6 @@ public class Player implements Runnable {
 
         actionQueue = new ArrayBlockingQueue<Action>( env.config.featureSize );
         terminate = false;
-        tokensPlaced = 0;
     }
 
     /**
@@ -175,7 +169,7 @@ public class Player implements Runnable {
 
         if(table.slotToCard[slot] != null) { //If a card exists in that slot
 
-            if(table.slotPlayerToToken[slot][id] == false && tokensPlaced < 3) {
+            if( !table.playerHasTokenIn(slot, id) && table.getNumOfTokensByPlayer(id) < 3) {
 
                 Action newAction = new Action(slot, true);
                 actionQueue.add( newAction );
@@ -207,7 +201,7 @@ public class Player implements Runnable {
         }
         catch(InterruptedException e){}
 
-        removeAllTokensOfPlayer();
+        table.removeAllTokensByPlayer(id);
 
         env.ui.setFreeze(id, Table.INIT_INDEX);
     }
@@ -228,7 +222,7 @@ public class Player implements Runnable {
         env.ui.setFreeze(id, Table.INIT_INDEX);
 
         if(!human)
-            removeAllTokensOfPlayer();
+            table.removeAllTokensByPlayer(id);
     }
 
     /**
@@ -243,53 +237,38 @@ public class Player implements Runnable {
 //                  added by us 
 //===========================================================
 
-
-    /**
-     * Removes all the tokens that have been placed by a specific player
-     * @param - the player's ID.
-     * @post - the player's tokens are removed from the table
-     * @post - tokensPlace == 0
-     */
-    private void removeAllTokensOfPlayer() {
-
-        for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
-            table.slotPlayerToToken[i][id] = false;
-        tokensPlaced = 0;
-    }
-
-
     /**
      * Handles placing a token by the player. Alerts dealer if 3 tokens are set.
      * @param - slot - slot to place the token.
      * @post - the token of the player is placed on the appropriate slot on the table
-     * @post - tokensPlaced = tokensPlaced + 1
      */
     private void playerPlaceToken(int slot) {
 
         table.placeToken(id, slot);
-        tokensPlaced++;
 
-        if(tokensPlaced == 3) {
-            int[] cards = new int[3];
-            int setIndex = 0;
-            for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
-                if(table.slotPlayerToToken[i][id])
-                    cards[setIndex++] = table.slotToCard[i];
+        if(table.playerRequireDealerCheck(id)) {
+            // int[] cards = new int[3];
+            // int setIndex = 0;
+            // for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
+            //     if(table.slotPlayerToToken[i][id])
+            //         cards[setIndex++] = table.slotToCard[i];
             
-            dealer.testPlayerSet(id,cards);    
+            dealer.awake();
+
+            try{
+                playerThread.wait(); //Player's thread sleeps until dealer done checking set and replying accordingly
+            }
+            catch(InterruptedException e){}
         }
     }
 
-        /**
+    /**
      * Handles removing a token by the player.
      * @param - slot - slot to remove the token
      * @post - the token of the player is removed from the appropriate slot on the table
-     * @post - tokensPlaced = tokensPlaced - 1
      */
     private void playerRemoveToken(int slot) {
 
-        boolean success = table.removeToken(id, slot);
-        if(success)
-            tokensPlaced--;
+        table.removeToken(id, slot);
     }
 }

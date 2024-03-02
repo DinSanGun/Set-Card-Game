@@ -38,14 +38,17 @@ public class Dealer implements Runnable {
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
-    private long reshuffleTime;
+    private long reshuffleTime = Long.MAX_VALUE;
+
+    /**
+     * The thread representing the current player.
+     */
+    private Thread dealerThread;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
         this.players = players;
-
-        reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
 
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
     }
@@ -55,6 +58,7 @@ public class Dealer implements Runnable {
      */
     @Override
     public void run() {
+        dealerThread = Thread.currentThread();
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
 
         //Create and run Players' threads
@@ -64,7 +68,9 @@ public class Dealer implements Runnable {
         }
 
         while (!shouldFinish()) { 
+
             placeCardsOnTable();
+            reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis + Table.SECOND_IN_MILLIS;
             timerLoop();
             updateTimerDisplay(false);
             removeAllCardsFromTable();
@@ -106,6 +112,18 @@ public class Dealer implements Runnable {
      */
     private void removeCardsFromTable() {
         // TODO implement
+        //TESTPLAYERSET HERE
+        //add flags for every player that needs to check a set in slotPlayer to Tokens
+        //Checks the table for all flags and checking all sets available
+        for(int i = Table.INIT_INDEX; i < players.length; i++){
+
+            if( table.playerRequireDealerCheck(i)){
+                //TESTSET
+
+                table.setPlayerNotRequireDealerCheck(i);
+            }
+        }
+
     }
 
     /**
@@ -199,4 +217,14 @@ public class Dealer implements Runnable {
         else
             players[player].penalty();
     }
+
+    /**
+     * Shuffles the deck.
+     */
+    public void awake(){
+
+        dealerThread.interrupt();
+    }
+
+
 }

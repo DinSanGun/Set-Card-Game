@@ -46,11 +46,16 @@ public class Table {
     /**
      * Mapping between a slot and the tokens placed on by the players (-1 if none).
      */
-    protected final Boolean[][] slotPlayerToToken; // slot per card (if any)
+    private final Boolean[][] slotPlayerToToken; // slot per card (if any)
     /**
-     * This queue will store the sets that need to be checked
+     * Mapping between a slot and the tokens placed on by the players (-1 if none).
      */
-    protected BlockingQueue<Integer> queueOfSets;
+    private final int[] playerToNumOfTokens; // slot per card (if any)
+    /**
+     * Mapping between a slot and the tokens placed on by the players (-1 if none).
+     */
+    private final boolean[] playerRequireDealerCheck; // slot per card (if any)
+
 
     //===========================================================
     //                  up until here
@@ -70,7 +75,13 @@ public class Table {
         this.cardToSlot = cardToSlot;
 
         slotPlayerToToken = new Boolean[env.config.tableSize][env.config.players];
-        queueOfSets = new LinkedBlockingQueue<Integer>();
+        playerToNumOfTokens = new int[env.config.players];
+        playerRequireDealerCheck = new boolean[env.config.players];
+
+        for(int i = INIT_INDEX; i < env.config.players; i++) {
+            playerToNumOfTokens[i] = INIT_INDEX;
+            playerRequireDealerCheck[i] = false;
+        }
     }
 
     /**
@@ -81,7 +92,6 @@ public class Table {
     public Table(Env env) {
 
         this(env, new Integer[env.config.tableSize], new Integer[env.config.deckSize]);
-        queueOfSets = new LinkedBlockingQueue<Integer>();
     }
 
     /**
@@ -127,7 +137,7 @@ public class Table {
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
         for(int i = INIT_INDEX; i < env.config.players; i++)
-        slotPlayerToToken[slot][i] = false;
+            slotPlayerToToken[slot][i] = false;
         
         env.ui.placeCard(card, slot);
     }
@@ -156,8 +166,15 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
     public void placeToken(int player, int slot) {
+
         if(slotToCard[slot] != null){
+
             slotPlayerToToken[slot][player] = true;
+            playerToNumOfTokens[player]++;
+
+            if( playerToNumOfTokens[player] == 3 )
+                playerRequireDealerCheck[player] = true;
+
             env.ui.placeToken(player, slot);
         }
     }
@@ -171,6 +188,7 @@ public class Table {
     public boolean removeToken(int player, int slot) {
         if(slotToCard[slot] != null){
             slotPlayerToToken[slot][player] = false;
+            playerToNumOfTokens[player]--;
             env.ui.removeToken(player, slot);
             return true;
         }
@@ -184,10 +202,8 @@ public class Table {
     //===========================================================
 
     /**
-     * 
      * @return - a list of integers, representing the indexes of all the empty slots in the table.
      */
-
     public List<Integer> getEmptySlots(){
 
         List<Integer> nullSlots = new LinkedList<Integer>();
@@ -197,5 +213,46 @@ public class Table {
 
         return nullSlots;
     }
+
+    /**
+     * @return - the number of tokens placed by the player
+     */
+    public int getNumOfTokensByPlayer(int player){
+        return playerToNumOfTokens[player];
+    }
+
+    /**
+     * @return - true iff the player has placed 3 tokens and waits for a dealer check
+     */
+    public boolean playerRequireDealerCheck(int player){
+        return playerRequireDealerCheck[player];
+    }
+
+    /**
+     * @return - true iff the player has placed 3 tokens and waits for a dealer check
+     */
+    public void setPlayerNotRequireDealerCheck(int player){
+        playerRequireDealerCheck[player] = false;
+    }
+
+    /**
+     * @return - true iff the given player has a token in the given card
+     */
+    public boolean playerHasTokenIn(int player, int slot){
+        return slotPlayerToToken[slot][player];
+    }
+
+    /**
+     * Removes all the tokens that have been placed by the specified player
+     * @param - the player's ID.
+     * @post - the player's tokens are removed from the table
+     */
+    public void removeAllTokensByPlayer(int player){
+        for(int i = INIT_INDEX; i < env.config.tableSize; i++)
+            slotPlayerToToken[i][player] = false;
+        playerToNumOfTokens[player] = 0;
+    }
+
+
 
 }
