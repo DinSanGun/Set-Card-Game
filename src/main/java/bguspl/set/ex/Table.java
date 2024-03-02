@@ -37,6 +37,11 @@ public class Table {
      */
     protected final Integer[] cardToSlot; // slot per card (if any)
 
+
+    //===========================================================
+    //                  added by us
+    //===========================================================
+
     /**
      * Mapping between a slot and the tokens placed on by the players (-1 if none).
      */
@@ -45,6 +50,10 @@ public class Table {
      * This queue will store the sets that need to be checked
      */
     protected BlockingQueue<Integer> queueOfSets;
+
+    //===========================================================
+    //                  up until here
+    //===========================================================
 
     /**
      * Constructor for testing.
@@ -116,6 +125,9 @@ public class Table {
 
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
+        for(int i = INIT_INDEX; i < env.config.players; i++)
+            slotToTokens[slot][i] = false;
+        
         env.ui.placeCard(card, slot);
     }
 
@@ -127,10 +139,14 @@ public class Table {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
-        env.ui.removeCard(slot);
         int cardToRemove = slotToCard[slot];
+
         slotToCard[slot] = null;
         cardToSlot[cardToRemove] = null;
+        for(int i = INIT_INDEX; i < env.config.players; i++)
+            slotToTokens[slot][i] = null;
+        
+        env.ui.removeCard(slot);
     }
 
     /**
@@ -140,8 +156,8 @@ public class Table {
      */
     public void placeToken(int player, int slot) {
         if(slotToCard[slot] != null){
-            env.ui.placeToken(player, slot);
             slotToTokens[player][slot] = true;
+            env.ui.placeToken(player, slot);
         }
     }
 

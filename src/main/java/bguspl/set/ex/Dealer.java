@@ -167,8 +167,8 @@ public class Dealer implements Runnable {
 
     /**
      * Tests if the player has assembled a valid set.
-     * If it did - award the player a point.
-     * If it didn't - penalize the player.
+     * If valid set - award the player a point.
+     * If not valid set - penalize the player.
      */
     public void testPlayerSet(int player, int[] cards) {
 

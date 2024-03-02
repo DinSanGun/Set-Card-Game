@@ -3,12 +3,8 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 //------------------ our imports -------------------------------
-import java.util.Queue;
-import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.List;
-import java.util.LinkedList;
-import java.util.logging.Level;
+import java.util.concurrent.BlockingQueue;
 //--------------------------------------------------------------
 
 /**
@@ -72,20 +68,12 @@ public class Player implements Runnable {
     /**
      * The number of tokens currently placed on the table by this player so far. -> we added that
      */
-    public int tokensPlaced = 0; 
+    public int tokensPlaced; 
 
      /**
-     * Holds the key presses made by the player (latest 3)
+     * Holds the actions made by the key presses of the player (last 3)
      */
-    private ArrayBlockingQueue<Integer> keyPressedQueue; 
-     /**
-     * This array indicates what slots the player chose to put his tokens.
-     */
-    private int[] tokens = {-1, -1, -1};
-    private final int SETSIZE = 3;
-    private volatile int penalty = 0;
-    private final long SECOND = 1000;
-    private Object playerLock = new Object();
+    private BlockingQueue<Action> actionQueue; 
 
     //===========================================================
     //                  up until here
@@ -109,8 +97,10 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
         this.dealer = dealer;
-        this.keyPressedQueue = new ArrayBlockingQueue<Integer>(SETSIZE);
-        this.terminate = false;
+
+        actionQueue = new ArrayBlockingQueue<Action>( env.config.featureSize );
+        terminate = false;
+        tokensPlaced = 0;
     }
 
     /**
@@ -124,9 +114,20 @@ public class Player implements Runnable {
         if (!human)
             createArtificialIntelligence();
 
+        Action actionToExecute;
+
         while (!terminate) {
-            // TODO implement main player loop
-            // REMOVE AN ACTION FROM THE QUEUE AND DISPATCH IT
+
+            try{
+
+                actionToExecute = actionQueue.take();
+                if( actionToExecute.placingToken() )
+                    playerPlaceToken( actionToExecute.getSlot() );
+                else
+                    playerRemoveToken( actionToExecute.getSlot() );
+
+            }
+            catch(InterruptedException e){}
         }
 
         if (!human) {
@@ -142,19 +143,19 @@ public class Player implements Runnable {
      * key presses. If the queue of key presses is full, the thread waits until it is not full.
      */
     private void createArtificialIntelligence() {
+
         // note: this is a very, very smart AI (!)
         aiThread = new Thread(() -> {
+
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
-            while (!terminate) {
-                //try {
-                //    synchronized (this) {
-                //         wait(); 
-                //     }
-                // } catch (InterruptedException ignored) {}
-                keyPressed((int)(Math.random() * (env.config.tableSize)));
-            }
+
+            while (!terminate) 
+                keyPressed( (int)(Math.random() * (env.config.tableSize)) );
+
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
+
         }, "computer-" + id);
+
         aiThread.start();
     }
 
@@ -171,32 +172,19 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        // TODO implement
-        if(table.slotToTokens[slot][id] != null) {
+
+        if(table.slotToCard[slot] != null) { //If a card exists in that slot
 
             if(table.slotToTokens[slot][id] == false && tokensPlaced < 3) {
 
-                table.placeToken(id, slot);
-                tokensPlaced++;
-
-                if(tokensPlaced == 3) {
-                    int[] cards = new int[3];
-                    int setIndex = 0;
-                    for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
-                        if(table.slotToTokens[i][id])
-                            cards[setIndex++] = table.slotToCard[i];
-                    
-                    dealer.testPlayerSet(id,cards);       
-                }
+                Action newAction = new Action(slot, true);
+                actionQueue.add( newAction );
             }
             else {
-                boolean success = table.removeToken(id, slot);
-                if(success)
-                    tokensPlaced--;
+                Action newAction = new Action(slot, false);
+                actionQueue.add( newAction );
             }
         }
-
-        // INSERT ACTIONS INTO THE QUEUE
     }
 
     /**
@@ -211,7 +199,17 @@ public class Player implements Runnable {
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score);
 
+        env.ui.setFreeze(id, env.config.pointFreezeMillis);
+
+        try{
+            if( Thread.currentThread().getName().equals("player-" + id) )
+                Thread.sleep(env.config.pointFreezeMillis);
+        }
+        catch(InterruptedException e){}
+
         removeAllTokensOfPlayer(id);
+
+        env.ui.setFreeze(id, Table.INIT_INDEX);
     }
 
     /**
@@ -220,6 +218,14 @@ public class Player implements Runnable {
     public void penalty() {
         // TODO implement
         env.ui.setFreeze(id, env.config.penaltyFreezeMillis);
+
+        try{
+            if( Thread.currentThread().getName().equals("player-" + id) )
+                Thread.sleep(env.config.penaltyFreezeMillis);
+        }
+        catch(InterruptedException e){}
+
+        env.ui.setFreeze(id, Table.INIT_INDEX);
 
     }
 
@@ -247,5 +253,41 @@ public class Player implements Runnable {
         for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
             table.slotToTokens[i][player] = false;
         tokensPlaced = 0;
+    }
+
+
+    /**
+     * Handles placing a token by the player. Alerts dealer if 3 tokens are set.
+     * @param - slot - slot to place the token.
+     * @post - the token of the player is placed on the appropriate slot on the table
+     * @post - tokensPlaced = tokensPlaced + 1
+     */
+    private void playerPlaceToken(int slot) {
+
+        table.placeToken(id, slot);
+        tokensPlaced++;
+
+        if(tokensPlaced == 3) {
+            int[] cards = new int[3];
+            int setIndex = 0;
+            for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
+                if(table.slotToTokens[i][id])
+                    cards[setIndex++] = table.slotToCard[i];
+            
+            dealer.testPlayerSet(id,cards);    
+        }
+    }
+
+        /**
+     * Handles removing a token by the player.
+     * @param - slot - slot to remove the token
+     * @post - the token of the player is removed from the appropriate slot on the table
+     * @post - tokensPlaced = tokensPlaced - 1
+     */
+    private void playerRemoveToken(int slot) {
+
+        boolean success = table.removeToken(id, slot);
+        if(success)
+            tokensPlaced--;
     }
 }
