@@ -40,17 +40,21 @@ public class Table {
     //===========================================================
 
     /**
-     * Mapping between a slot and the tokens placed on by the players (-1 if none).
+     * Mapping between a slot and player to the tokens placed on by the player.
      */
     protected final Boolean[][] slotPlayerToToken; // slot per card (if any)
     /**
-     * Mapping between a slot and the tokens placed on by the players (-1 if none).
+     * Mapping between a player and the number of tokens placed on the table by the player.
      */
     protected final int[] playerToNumOfTokens; // slot per card (if any)
     /**
-     * Mapping between a slot and the tokens placed on by the players (-1 if none).
+     * Marks if a player needs a dealer check (-1 if none).
      */
     protected final boolean[] playerRequireDealerCheck; // slot per card (if any)
+    /**
+     * An object used for synchronizing.
+     */
+    protected final Object lock; // slot per card (if any)
 
 
     //===========================================================
@@ -74,14 +78,13 @@ public class Table {
         playerToNumOfTokens = new int[env.config.players];
         playerRequireDealerCheck = new boolean[env.config.players];
 
-        for(int player = INIT_INDEX; player < env.config.players; player++) {
-            playerToNumOfTokens[player] = INIT_INDEX;
-            playerRequireDealerCheck[player] = false;
+        Arrays.fill(playerToNumOfTokens , INIT_INDEX);
+        Arrays.fill(playerRequireDealerCheck , false);
 
-            for(int slot = INIT_INDEX; slot < env.config.tableSize; slot++ ){
-                slotPlayerToToken[slot][player] = false;
-            }
-        }
+        for(Boolean[] slot : slotPlayerToToken)
+            Arrays.fill(slot , false);
+
+        lock = new Object();
 
     }
 
@@ -170,13 +173,16 @@ public class Table {
 
         if(slotToCard[slot] != null && playerToNumOfTokens[player] < 3){
 
-            slotPlayerToToken[slot][player] = true;
-            playerToNumOfTokens[player]++;
+            synchronized(lock){
 
-            if( playerToNumOfTokens[player] == 3 )
-                playerRequireDealerCheck[player] = true;
+                slotPlayerToToken[slot][player] = true;
+                playerToNumOfTokens[player]++;
 
-            env.ui.placeToken(player, slot);
+                env.ui.placeToken(player, slot);
+
+                    if( playerToNumOfTokens[player] == 3 )
+                        playerRequireDealerCheck[player] = true;
+            }
         }
     }
 

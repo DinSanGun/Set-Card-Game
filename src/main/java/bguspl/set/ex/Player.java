@@ -59,7 +59,6 @@ public class Player implements Runnable {
     //                  added by us
     //===========================================================
 
-
      /**
      * The dealer that manages the player's game. -> we added that 
      */
@@ -73,9 +72,6 @@ public class Player implements Runnable {
     //===========================================================
     //                  up until here
     //===========================================================
-
-
-
 
     /**
      * The class constructor.
@@ -118,7 +114,7 @@ public class Player implements Runnable {
                 if( actionToExecute.placingToken() )
                     playerPlaceToken( actionToExecute.getSlot() );
                 else
-                    playerRemoveToken( actionToExecute.getSlot() );
+                    table.removeToken(id, actionToExecute.getSlot());    
 
             }
             catch(InterruptedException e){}
@@ -167,18 +163,21 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
 
-        if(table.slotToCard[slot] != null) { //If a card exists in that slot
+        synchronized(playerThread){
+  
+            if(table.slotToCard[slot] != null) { //If a card exists in that slot
 
-            if( table.slotPlayerToToken[slot][id] ) {
+                if( table.slotPlayerToToken[slot][id] ) {
 
-                Action newAction = new Action(slot, false);
-                actionQueue.add( newAction );
+                    Action newAction = new Action(slot, false);
+                    actionQueue.add( newAction );
 
 
-            }
-            else if(table.playerToNumOfTokens[id] < 3){
-                Action newAction = new Action(slot, true);
-                actionQueue.add( newAction );
+                }
+                else if(table.playerToNumOfTokens[id] < 3){
+                    Action newAction = new Action(slot, true);
+                    actionQueue.add( newAction );
+                }
             }
         }
     }
@@ -207,13 +206,17 @@ public class Player implements Runnable {
 
         env.ui.setFreeze(id, Table.INIT_INDEX);
 
-        playerThread.notify();
+        synchronized(playerThread){
+            playerThread.notify();
+        }
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
+        
+        playerThread.interrupt();
 
         env.ui.setFreeze(id, env.config.penaltyFreezeMillis);
 
@@ -258,22 +261,12 @@ public class Player implements Runnable {
             
             dealer.awake();
 
-            synchronized(playerThread) {
+            synchronized(table.lock) {
                 try{
                     playerThread.wait(); //Player's thread sleeps until dealer done checking set and replying accordingly
                 }
                 catch(InterruptedException e){}
             }
         }
-    }
-
-    /**
-     * Handles removing a token by the player.
-     * @param - slot - slot to remove the token
-     * @post - the token of the player is removed from the appropriate slot on the table
-     */
-    private void playerRemoveToken(int slot) {
-
-        table.removeToken(id, slot);
     }
 }
