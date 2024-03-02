@@ -112,7 +112,7 @@ public class Dealer implements Runnable {
      * Check if any cards can be removed from the deck and placed on the table.
      */
     private void placeCardsOnTable() {
-        // TODO implement
+
         int numOfCardsOnTheTable = table.countCards();
 
         if(deck.size() - numOfCardsOnTheTable < env.config.featureSize && !shouldFinish() ) //Checking if game should terminate
@@ -133,14 +133,29 @@ public class Dealer implements Runnable {
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
     private void sleepUntilWokenOrTimeout() {
-        // TODO implement
+        try{
+            Thread.sleep(Table.SECOND_IN_MILLIS);
+        }
+        catch(InterruptedException e){}
     }
 
     /**
      * Reset and/or update the countdown and the countdown display.
      */
     private void updateTimerDisplay(boolean reset) {
-        // TODO implement
+
+        if(reset){
+            reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis;
+            env.ui.setCountdown( reshuffleTime - System.currentTimeMillis() , false);
+        }
+        else{
+            long time = reshuffleTime - System.currentTimeMillis();
+            if(time <= 3)
+                env.ui.setCountdown(time , true);
+            else
+                env.ui.setCountdown(time , false);
+
+        }
     }
 
     /**

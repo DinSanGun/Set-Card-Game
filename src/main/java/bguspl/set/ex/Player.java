@@ -175,7 +175,7 @@ public class Player implements Runnable {
 
         if(table.slotToCard[slot] != null) { //If a card exists in that slot
 
-            if(table.slotToTokens[slot][id] == false && tokensPlaced < 3) {
+            if(table.slotPlayerToToken[slot][id] == false && tokensPlaced < 3) {
 
                 Action newAction = new Action(slot, true);
                 actionQueue.add( newAction );
@@ -207,7 +207,7 @@ public class Player implements Runnable {
         }
         catch(InterruptedException e){}
 
-        removeAllTokensOfPlayer(id);
+        removeAllTokensOfPlayer();
 
         env.ui.setFreeze(id, Table.INIT_INDEX);
     }
@@ -216,7 +216,7 @@ public class Player implements Runnable {
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        // TODO implement
+
         env.ui.setFreeze(id, env.config.penaltyFreezeMillis);
 
         try{
@@ -227,6 +227,8 @@ public class Player implements Runnable {
 
         env.ui.setFreeze(id, Table.INIT_INDEX);
 
+        if(!human)
+            removeAllTokensOfPlayer();
     }
 
     /**
@@ -248,10 +250,10 @@ public class Player implements Runnable {
      * @post - the player's tokens are removed from the table
      * @post - tokensPlace == 0
      */
-    private void removeAllTokensOfPlayer(int player) {
+    private void removeAllTokensOfPlayer() {
 
         for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
-            table.slotToTokens[i][player] = false;
+            table.slotPlayerToToken[i][id] = false;
         tokensPlaced = 0;
     }
 
@@ -271,7 +273,7 @@ public class Player implements Runnable {
             int[] cards = new int[3];
             int setIndex = 0;
             for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
-                if(table.slotToTokens[i][id])
+                if(table.slotPlayerToToken[i][id])
                     cards[setIndex++] = table.slotToCard[i];
             
             dealer.testPlayerSet(id,cards);    
