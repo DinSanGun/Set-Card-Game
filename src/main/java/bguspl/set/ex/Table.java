@@ -3,10 +3,11 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-,
+
 //------------------ our imports -------------------------------
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -100,7 +101,6 @@ public class Table {
         return cards;
     }
 
-
     /**
      * Places a card on the table in a grid slot.
      * @param card - the card id to place in the slot.
@@ -108,9 +108,7 @@ public class Table {
      *
      * @post - the card placed is on the table, in the assigned slot.
      */
-    public void placeCard(int cardToPlace) {
-        placeCard(cardToPlace, getEmptySlot());
-    }
+
     public void placeCard(int card, int slot) {
         try {
             Thread.sleep(env.config.tableDelayMillis);
@@ -173,16 +171,14 @@ public class Table {
      * @return - a list of integers, representing the indexes of all the empty slots in the table.
      */
 
-    private int getEmptySlot(){
-        
-        int possibleSlot = -1;
-        for (int i = INIT_INDEX; i < slotToCard.length; i++){
-            if (slotToCard[i] == null){
-                possibleSlot = i;
-                break;
-            }
-        }
-        return possibleSlot;
+    public List<Integer> getEmptySlots(){
+
+        List<Integer> nullSlots = new LinkedList<Integer>();
+        for (int i = INIT_INDEX; i < slotToCard.length; i++)
+            if (slotToCard[i] == null)
+                nullSlots.add(i);
+
+        return nullSlots;
     }
 
 }
