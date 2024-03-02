@@ -257,7 +257,7 @@ public class Player implements Runnable {
 
         table.placeToken(id, slot);
 
-        if( table.playerRequireDealerCheck[id] ) {
+        if( table.playerRequireCheck(id) ) {
             
             dealer.awake();
 

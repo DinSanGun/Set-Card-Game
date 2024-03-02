@@ -114,7 +114,7 @@ public class Dealer implements Runnable {
 
         for(int player = Table.INIT_INDEX; player < players.length; player++){
 
-            if( table.playerRequireDealerCheck[player] ){
+            if( table.playerRequireCheck(player) ){
                 //TESTSET
 
                 int[] setToTest = table.getPlayerCards(player);
@@ -131,7 +131,6 @@ public class Dealer implements Runnable {
                         players[player].penalty();
                 }
 
-                table.playerRequireDealerCheck[player] = false;
             }
         }
 

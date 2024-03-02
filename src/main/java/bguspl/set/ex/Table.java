@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 
@@ -42,19 +43,15 @@ public class Table {
     /**
      * Mapping between a slot and player to the tokens placed on by the player.
      */
-    protected final Boolean[][] slotPlayerToToken; // slot per card (if any)
+    protected final Boolean[][] slotPlayerToToken;
     /**
      * Mapping between a player and the number of tokens placed on the table by the player.
      */
-    protected final int[] playerToNumOfTokens; // slot per card (if any)
-    /**
-     * Marks if a player needs a dealer check (-1 if none).
-     */
-    protected final boolean[] playerRequireDealerCheck; // slot per card (if any)
+    protected final int[] playerToNumOfTokens;
     /**
      * An object used for synchronizing.
      */
-    protected final Object lock; // slot per card (if any)
+    protected final Object lock; 
 
 
     //===========================================================
@@ -76,10 +73,8 @@ public class Table {
 
         slotPlayerToToken = new Boolean[env.config.tableSize][env.config.players];
         playerToNumOfTokens = new int[env.config.players];
-        playerRequireDealerCheck = new boolean[env.config.players];
 
         Arrays.fill(playerToNumOfTokens , INIT_INDEX);
-        Arrays.fill(playerRequireDealerCheck , false);
 
         for(Boolean[] slot : slotPlayerToToken)
             Arrays.fill(slot , false);
@@ -180,8 +175,6 @@ public class Table {
 
                 env.ui.placeToken(player, slot);
 
-                    if( playerToNumOfTokens[player] == 3 )
-                        playerRequireDealerCheck[player] = true;
             }
         }
     }
@@ -248,6 +241,15 @@ public class Table {
         for(int i = INIT_INDEX; i < env.config.tableSize; i++)
             slotPlayerToToken[i][player] = false;
         playerToNumOfTokens[player] = 0;
+    }
+
+    /**
+     * Removes all the tokens that have been placed by the specified player
+     * @param - the player's ID.
+     * @return - true iff the player has completed a set of 3 cards
+     */
+    public boolean playerRequireCheck(int player){
+        return playerToNumOfTokens[player] == 3;
     }
 
 }
