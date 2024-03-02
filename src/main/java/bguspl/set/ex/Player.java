@@ -169,13 +169,15 @@ public class Player implements Runnable {
 
         if(table.slotToCard[slot] != null) { //If a card exists in that slot
 
-            if( !table.playerHasTokenIn(slot, id) && table.getNumOfTokensByPlayer(id) < 3) {
+            if( table.slotPlayerToToken[slot][id] ) {
 
-                Action newAction = new Action(slot, true);
-                actionQueue.add( newAction );
-            }
-            else {
                 Action newAction = new Action(slot, false);
+                actionQueue.add( newAction );
+
+
+            }
+            else if(table.playerToNumOfTokens[id] < 3){
+                Action newAction = new Action(slot, true);
                 actionQueue.add( newAction );
             }
         }
@@ -204,6 +206,8 @@ public class Player implements Runnable {
         table.removeAllTokensByPlayer(id);
 
         env.ui.setFreeze(id, Table.INIT_INDEX);
+
+        playerThread.notify();
     }
 
     /**
@@ -223,6 +227,10 @@ public class Player implements Runnable {
 
         if(!human)
             table.removeAllTokensByPlayer(id);
+        
+        synchronized(playerThread){
+                playerThread.notify();
+        }
     }
 
     /**
@@ -246,19 +254,16 @@ public class Player implements Runnable {
 
         table.placeToken(id, slot);
 
-        if(table.playerRequireDealerCheck(id)) {
-            // int[] cards = new int[3];
-            // int setIndex = 0;
-            // for(int i = Table.INIT_INDEX; i < env.config.tableSize; i++)
-            //     if(table.slotPlayerToToken[i][id])
-            //         cards[setIndex++] = table.slotToCard[i];
+        if( table.playerRequireDealerCheck[id] ) {
             
             dealer.awake();
 
-            try{
-                playerThread.wait(); //Player's thread sleeps until dealer done checking set and replying accordingly
+            synchronized(playerThread) {
+                try{
+                    playerThread.wait(); //Player's thread sleeps until dealer done checking set and replying accordingly
+                }
+                catch(InterruptedException e){}
             }
-            catch(InterruptedException e){}
         }
     }
 

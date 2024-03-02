@@ -111,16 +111,26 @@ public class Dealer implements Runnable {
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
-        // TODO implement
-        //TESTPLAYERSET HERE
-        //add flags for every player that needs to check a set in slotPlayer to Tokens
-        //Checks the table for all flags and checking all sets available
-        for(int i = Table.INIT_INDEX; i < players.length; i++){
 
-            if( table.playerRequireDealerCheck(i)){
+        for(int player = Table.INIT_INDEX; player < players.length; player++){
+
+            if( table.playerRequireDealerCheck[player] ){
                 //TESTSET
+                int[] setToTest = table.getPlayerCards(player);
 
-                table.setPlayerNotRequireDealerCheck(i);
+                if(setToTest != null){
+
+                    if( env.util.testSet(setToTest) ){
+
+                        players[player].point();
+                        for(int card : setToTest)
+                            table.removeCard(card);
+                    }
+                    else
+                        players[player].penalty();
+                }
+
+                table.playerRequireDealerCheck[player] = false;
             }
         }
 

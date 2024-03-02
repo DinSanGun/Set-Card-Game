@@ -8,10 +8,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-//------------------ our imports -------------------------------
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-//--------------------------------------------------------------
 
 /**
  * This class contains the data that is visible to the player.
@@ -46,15 +42,15 @@ public class Table {
     /**
      * Mapping between a slot and the tokens placed on by the players (-1 if none).
      */
-    private final Boolean[][] slotPlayerToToken; // slot per card (if any)
+    protected final Boolean[][] slotPlayerToToken; // slot per card (if any)
     /**
      * Mapping between a slot and the tokens placed on by the players (-1 if none).
      */
-    private final int[] playerToNumOfTokens; // slot per card (if any)
+    protected final int[] playerToNumOfTokens; // slot per card (if any)
     /**
      * Mapping between a slot and the tokens placed on by the players (-1 if none).
      */
-    private final boolean[] playerRequireDealerCheck; // slot per card (if any)
+    protected final boolean[] playerRequireDealerCheck; // slot per card (if any)
 
 
     //===========================================================
@@ -78,10 +74,15 @@ public class Table {
         playerToNumOfTokens = new int[env.config.players];
         playerRequireDealerCheck = new boolean[env.config.players];
 
-        for(int i = INIT_INDEX; i < env.config.players; i++) {
-            playerToNumOfTokens[i] = INIT_INDEX;
-            playerRequireDealerCheck[i] = false;
+        for(int player = INIT_INDEX; player < env.config.players; player++) {
+            playerToNumOfTokens[player] = INIT_INDEX;
+            playerRequireDealerCheck[player] = false;
+
+            for(int slot = INIT_INDEX; slot < env.config.tableSize; slot++ ){
+                slotPlayerToToken[slot][player] = false;
+            }
         }
+
     }
 
     /**
@@ -167,7 +168,7 @@ public class Table {
      */
     public void placeToken(int player, int slot) {
 
-        if(slotToCard[slot] != null){
+        if(slotToCard[slot] != null && playerToNumOfTokens[player] < 3){
 
             slotPlayerToToken[slot][player] = true;
             playerToNumOfTokens[player]++;
@@ -215,31 +216,21 @@ public class Table {
     }
 
     /**
-     * @return - the number of tokens placed by the player
+     * @return - an array of cards representing a player's set
+     * @return - null if the player's tokens is less than 3.
      */
-    public int getNumOfTokensByPlayer(int player){
-        return playerToNumOfTokens[player];
-    }
+    public int[] getPlayerCards(int player){
+        int[] cards = new int[env.config.featureSize];
+        int index = INIT_INDEX;
 
-    /**
-     * @return - true iff the player has placed 3 tokens and waits for a dealer check
-     */
-    public boolean playerRequireDealerCheck(int player){
-        return playerRequireDealerCheck[player];
-    }
+        for(int slot = INIT_INDEX; slot < env.config.tableSize; slot++)
+            if(slotPlayerToToken != null && slotPlayerToToken[slot][player])
+                cards[index++] = slotToCard[slot];
+        
+        if(index != 3)
+            return null;
 
-    /**
-     * @return - true iff the player has placed 3 tokens and waits for a dealer check
-     */
-    public void setPlayerNotRequireDealerCheck(int player){
-        playerRequireDealerCheck[player] = false;
-    }
-
-    /**
-     * @return - true iff the given player has a token in the given card
-     */
-    public boolean playerHasTokenIn(int player, int slot){
-        return slotPlayerToToken[slot][player];
+        return cards;
     }
 
     /**
@@ -252,7 +243,5 @@ public class Table {
             slotPlayerToToken[i][player] = false;
         playerToNumOfTokens[player] = 0;
     }
-
-
 
 }
