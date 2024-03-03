@@ -6,7 +6,6 @@ import bguspl.set.Env;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 //--------------------------------------------------------------
-import java.util.concurrent.Semaphore;
 
 /**
  * This class manages the players' threads and data
@@ -68,11 +67,22 @@ public class Player implements Runnable {
      /**
      * Holds the actions made by the key presses of the player (last 3)
      */
-    private BlockingQueue<Action> actionQueue; 
+    private BlockingQueue<Integer> keyPressedQueue; 
     /**
      * A lock object given by dealer for locking and synchronization handling.
      */
-    private Object lock; 
+    private Object playerLock; 
+    /**
+     * A variable indicating if a current player is frozen (because of point() or penalty())
+     */
+    private boolean frozen; 
+    /**
+     * A variable indicating the system time (in millis) when the player should get unfrozen.
+     */
+    protected long unfreezeTime; 
+
+
+
 
     //===========================================================
     //                  up until here
@@ -94,8 +104,10 @@ public class Player implements Runnable {
         this.human = human;
         this.dealer = dealer;
 
-        actionQueue = new ArrayBlockingQueue<Action>( env.config.featureSize );
+        keyPressedQueue = new ArrayBlockingQueue<Integer>( env.config.featureSize );
         terminate = false;
+        frozen = false;
+        playerLock = new Object();
     }
 
     /**
@@ -110,20 +122,35 @@ public class Player implements Runnable {
         if (!human)
             createArtificialIntelligence();
 
-        Action actionToExecute;
 
         while (!terminate) {
-
             try{
+                int slot = keyPressedQueue.take();
 
-                actionToExecute = actionQueue.take();
-                if( actionToExecute.placingToken() )
-                    playerPlaceToken( actionToExecute.getSlot() );
-                else
-                    table.removeToken(id, actionToExecute.getSlot());    
+                if( !keyPressedQueue.isEmpty() ){
+                    if( table.slotPlayerToToken[slot][id] )
+                        table.removeToken(id, slot);    
 
+                    else if(table.playerToNumOfTokens[id] < 3){                    
+                        table.placeToken(id, slot);
+                        // playerPlaceToken(slot);a TODO check what to do with this line
+
+                        if(table.playerToNumOfTokens[id] == 3){
+                            synchronized(dealer.dealerLock){
+                                dealer.dealerLock.notify();
+                            }
+
+                            synchronized(playerLock){
+                                try{
+                                    playerLock.wait();
+                                } catch(InterruptedException ignored){}
+                            }
+
+                        }
+                    }
+                }
             }
-            catch(InterruptedException e){}
+            catch(InterruptedException ignored){}
         }
 
         if (!human) {
@@ -169,23 +196,8 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
 
-        synchronized(playerThread){
-  
-            if(table.slotToCard[slot] != null) { //If a card exists in that slot
-
-                if( table.slotPlayerToToken[slot][id] ) {
-
-                    Action newAction = new Action(slot, false);
-                    actionQueue.add( newAction );
-
-
-                }
-                else if(table.playerToNumOfTokens[id] < 3){
-                    Action newAction = new Action(slot, true);
-                    actionQueue.add( newAction );
-                }
-            }
-        }
+        if( !frozen && table.slotToCard[slot] != null)
+            keyPressedQueue.offer(slot);
     }
 
     /**
@@ -201,6 +213,8 @@ public class Player implements Runnable {
         env.ui.setScore(id, ++score);
 
         env.ui.setFreeze(id, env.config.pointFreezeMillis);
+
+        frozen = true;
 
         try{
             if( Thread.currentThread().getName().equals("player-" + id) )
@@ -223,6 +237,8 @@ public class Player implements Runnable {
     public void penalty() {
         
         playerThread.interrupt();
+
+        unfreezeTime = System.currentTimeMillis() + env.config.penaltyFreezeMillis;
 
         env.ui.setFreeze(id, env.config.penaltyFreezeMillis);
 
@@ -254,27 +270,14 @@ public class Player implements Runnable {
 //                  added by us 
 //===========================================================
 
-
-    /**
-     *  Set's the player semaphore for synchronization.
-     */
-    public void setSemaphore(Semaphore semaphore)  {
-        this.semaphore = semaphore;
-    }
-    /**
-     *  Gives the player access to a lock, for synchronization uses.
-     */
-    public void setlock(Object lock)  {
-        this.lock = lock;
-    }
     /**
      *  Waits if dealer is dealing cards or removing cards right now
      */
     public void waitForDealerToDeal()  {
         try {
             while (dealer.dealing) {
-                synchronized(lock){
-                    lock.wait();
+                synchronized(playerLock){
+                    playerLock.wait();
                 }
             }
         } catch(InterruptedException ignored) {}
@@ -299,5 +302,12 @@ public class Player implements Runnable {
                 catch(InterruptedException e){}
             }
         }
+    }
+
+    /**
+     *@return - true iff the player is frozen right now
+     */
+    public boolean isFrozen()  {
+        return frozen;
     }
 }

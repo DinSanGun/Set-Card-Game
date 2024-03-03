@@ -4,8 +4,10 @@ import bguspl.set.Env;
 import bguspl.set.ThreadLogger;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.Arrays;
 import java.util.Collections;
 
 
@@ -47,7 +49,7 @@ public class Dealer implements Runnable {
     /**
      * An object for synchronization
      */
-    private Object lock;
+    protected Object dealerLock;
     /**
      * A variable indicating if the dealer is dealing right now
      */
@@ -62,7 +64,7 @@ public class Dealer implements Runnable {
 
         terminate = false;
 
-        lock = new Object();
+        dealerLock = new Object();
         dealing = false;
     }
 
@@ -76,7 +78,6 @@ public class Dealer implements Runnable {
 
         //Create and run Players' threads
         for(Player player : players) {
-            player.setlock(lock);
             ThreadLogger playerThreadWithLogger = new ThreadLogger(player, "player-" + player.id , env.logger);
             playerThreadWithLogger.startWithLog();
         }
@@ -108,7 +109,7 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated.
      */
     public void terminate() {
-        
+
         terminate = true;
         for(Player player : players)
             player.terminate();
@@ -159,22 +160,24 @@ public class Dealer implements Runnable {
      */
     private void placeCardsOnTable() {
 
-        dealing = true;
-        int numOfCardsOnTheTable = table.countCards();
+        synchronized(dealerLock){
 
-        if(deck.size() - numOfCardsOnTheTable < env.config.featureSize && !shouldFinish() ) //Checking if game should terminate
-            terminate(); //TODO - CHECK FOR AVAILABLE SETS FROM TABLE U DECK
-        
-        else {
-            List<Integer> emptySlots = table.getEmptySlots();
+            int numOfCardsOnTheTable = table.countCards();
 
-            if(emptySlots.size() == env.config.tableSize && !deck.isEmpty())
-                shuffleDeck();
-
-            for(Integer slot : emptySlots)
-                table.placeCard(deck.remove(Table.INIT_INDEX) , slot);
+            if(deck.size() - numOfCardsOnTheTable < env.config.featureSize || shouldFinish() ) //Checking if game should terminate
+                terminate(); 
+            
+            else {
+                List<Integer> emptySlots = table.getEmptySlots();
+    
+                if(emptySlots.size() == env.config.tableSize && !deck.isEmpty())
+                    shuffleDeck();
+    
+                for(Integer slot : emptySlots)
+                    table.placeCard(deck.remove(Table.INIT_INDEX) , slot);
+            }
+            dealing = false;
         }
-        dealing = false;
     }
 
     /**
@@ -198,10 +201,16 @@ public class Dealer implements Runnable {
         }
         else{
             long time = reshuffleTime - System.currentTimeMillis();
-            if(time < env.config.turnTimeoutMillis)
+            if(time < env.config.turnTimeoutWarningMillis)
                 env.ui.setCountdown(time , true);
             else
                 env.ui.setCountdown(time , false);
+        }
+
+        for(Player player : players){
+            if( player.isFrozen() ) 
+                env.ui.setFreeze(player.id , player.unfreezeTime - System.currentTimeMillis());
+
         }
     }
 
@@ -209,7 +218,12 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        // TODO implement
+        synchronized(table.tableLock){
+            for(Player player : players){
+                table.removeAllTokensByPlayer(player.id);
+                player.clearKeyPressedQueue();
+            }
+        }
     }
 
     /**

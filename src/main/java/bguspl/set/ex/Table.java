@@ -48,6 +48,10 @@ public class Table {
      * Mapping between a player and the number of tokens placed on the table by the player.
      */
     protected final int[] playerToNumOfTokens;
+    /**
+     * an object used for locking on the table (for synchronization)
+     */
+    protected Object tableLock;
 
 
     //===========================================================
@@ -66,6 +70,8 @@ public class Table {
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
+
+        tableLock = new Object();
 
         slotPlayerToToken = new Boolean[env.config.tableSize][env.config.players];
         playerToNumOfTokens = new int[env.config.players];
@@ -198,9 +204,9 @@ public class Table {
     public List<Integer> getEmptySlots(){
 
         List<Integer> nullSlots = new LinkedList<Integer>();
-        for (int i = INIT_INDEX; i < slotToCard.length; i++)
-            if (slotToCard[i] == null)
-                nullSlots.add(i);
+        for (int slot = INIT_INDEX; slot < slotToCard.length; slot++)
+            if (slotToCard[slot] == null)
+                nullSlots.add(slot);
 
         return nullSlots;
     }
