@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -54,6 +55,10 @@ public class Dealer implements Runnable {
      * A variable indicating if the dealer is dealing right now
      */
     protected boolean dealing;
+    /**
+     * A variable indicating if the dealer is dealing right now
+     */
+    private Integer playerRequireCheck;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -66,6 +71,7 @@ public class Dealer implements Runnable {
 
         dealerLock = new Object();
         dealing = false;
+        playerRequireCheck = null;
     }
 
     /**
@@ -86,7 +92,7 @@ public class Dealer implements Runnable {
             placeCardsOnTable();
             reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis + Table.SECOND_IN_MILLIS;
             timerLoop();
-            updateTimerDisplay(false);
+            updateTimerDisplay(true);
             removeAllCardsFromTable();
         }
         announceWinners();
@@ -131,27 +137,25 @@ public class Dealer implements Runnable {
      */
     private void removeCardsFromTable() {
         dealing = true;
-        for(int player = Table.INIT_INDEX; player < players.length; player++){
 
-            if( table.playerRequireCheck(player) ){
-                //TESTSET
+            if( playerRequireCheck != null ){
 
-                int[] setToTest = table.getPlayerCards(player);
+                int[] setToTest = table.getPlayerCards(playerRequireCheck);
 
                 if(setToTest != null){
 
                     if( env.util.testSet(setToTest) ){
 
-                        players[player].point();
+                        players[playerRequireCheck].point();
                         for(int card : setToTest)
                             table.removeCard(card);
                     }
                     else
-                        players[player].penalty();
+                        players[playerRequireCheck].penalty();
                 }
 
+                playerRequireCheck = null;
             }
-        }
         dealing = false;
     }
 
@@ -184,10 +188,12 @@ public class Dealer implements Runnable {
      * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
      */
     private void sleepUntilWokenOrTimeout() {
-        try{
-            Thread.sleep(Table.SECOND_IN_MILLIS);
+        synchronized(dealerLock){
+            try{
+                dealerLock.wait(100);
+            }
+            catch(InterruptedException ignored){}
         }
-        catch(InterruptedException ignored){}
     }
 
     /**
@@ -221,7 +227,13 @@ public class Dealer implements Runnable {
         synchronized(table.tableLock){
             for(Player player : players){
                 table.removeAllTokensByPlayer(player.id);
-                player.clearKeyPressedQueue();
+                player.clearKeyQueue();
+            }
+            for(int slot = table.INIT_INDEX; slot < env.config.tableSize; slot++){
+                if(table.slotToCard[slot] != null){
+                    deck.add(table.slotToCard[slot]);
+                    table.removeCard(slot);
+                }
             }
         }
     }
@@ -230,7 +242,23 @@ public class Dealer implements Runnable {
      * Check who is/are the winner/s and displays them.
      */
     private void announceWinners() {
-        // TODO implement
+        List<Integer> winnersID = new ArrayList<Integer>();
+
+        int max = table.INIT_INDEX;
+
+        for(Player player : players)
+            if(player.score() > max)
+                max = player.score();
+
+        for(Player player : players)
+            if(player.score() == max)
+                winnersID.add(player.id);
+        
+        int[] winnersArray = new int[winnersID.size()];
+        for(int i = table.INIT_INDEX; i < winnersID.size(); i++)
+            winnersArray[i] = winnersID.remove(Table.INIT_INDEX);
+
+        env.ui.announceWinner(winnersArray);
     }
 
     /**
@@ -262,12 +290,17 @@ public class Dealer implements Runnable {
     }
 
     /**
-     * Shuffles the deck.
+     * Wakes the dealer thread up
      */
     public void awake(){
-
         dealerThread.interrupt();
     }
 
-
+    /**
+     * Wakes the dealer thread up
+     */
+    public void notifyDealerAboutSet(int player){
+        playerRequireCheck = player;
+        dealerThread.interrupt();
+    }
 }

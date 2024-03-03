@@ -125,20 +125,18 @@ public class Player implements Runnable {
 
         while (!terminate) {
             try{
-                int slot = keyPressedQueue.take();
-
                 if( !keyPressedQueue.isEmpty() ){
+
+                    int slot = keyPressedQueue.take();
+
                     if( table.slotPlayerToToken[slot][id] )
                         table.removeToken(id, slot);    
 
-                    else if(table.playerToNumOfTokens[id] < 3){                    
+                    else if(table.playerToNumOfTokens[id] < 3) {                    
                         table.placeToken(id, slot);
-                        // playerPlaceToken(slot);a TODO check what to do with this line
 
                         if(table.playerToNumOfTokens[id] == 3){
-                            synchronized(dealer.dealerLock){
-                                dealer.dealerLock.notify();
-                            }
+                                dealer.notifyDealerAboutSet(id);
 
                             synchronized(playerLock){
                                 try{
@@ -283,25 +281,10 @@ public class Player implements Runnable {
         } catch(InterruptedException ignored) {}
     }
     /**
-     * Handles placing a token by the player. Alerts dealer if 3 tokens are set.
-     * @param - slot - slot to place the token.
-     * @post - the token of the player is placed on the appropriate slot on the table
+     * @post - the key pressed queue is empty
      */
-    private void playerPlaceToken(int slot) {
-
-        table.placeToken(id, slot);
-
-        if( table.playerRequireCheck(id) ) {
-            
-            dealer.awake();
-
-            synchronized(this) {
-                try{
-                    playerThread.wait(); //Player's thread sleeps until dealer done checking set and replying accordingly
-                }
-                catch(InterruptedException e){}
-            }
-        }
+    public void clearKeyQueue(){
+        keyPressedQueue.clear();
     }
 
     /**

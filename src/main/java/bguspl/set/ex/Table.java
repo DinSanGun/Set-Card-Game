@@ -239,14 +239,4 @@ public class Table {
             slotPlayerToToken[i][player] = false;
         playerToNumOfTokens[player] = 0;
     }
-
-    /**
-     * Removes all the tokens that have been placed by the specified player
-     * @param - the player's ID.
-     * @return - true iff the player has completed a set of 3 cards
-     */
-    public boolean playerRequireCheck(int player){
-        return playerToNumOfTokens[player] == 3;
-    }
-
 }
