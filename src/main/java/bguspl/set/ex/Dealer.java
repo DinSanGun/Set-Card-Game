@@ -4,7 +4,6 @@ import bguspl.set.Env;
 import bguspl.set.ThreadLogger;
 
 import java.util.List;
-import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.Collections;
@@ -46,15 +45,11 @@ public class Dealer implements Runnable {
      */
     private Thread dealerThread;
     /**
-     * A semaphore to manage the synchronization of the threads.
-     */
-    private Semaphore semaphore;
-    /**
-     * A semaphore to manage the synchronization of the threads.
+     * An object for synchronization
      */
     private Object lock;
     /**
-     * A semaphore to manage the synchronization of the threads.
+     * A variable indicating if the dealer is dealing right now
      */
     protected boolean dealing;
 
@@ -65,7 +60,8 @@ public class Dealer implements Runnable {
 
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
 
-        semaphore = new Semaphore(1);
+        terminate = false;
+
         lock = new Object();
         dealing = false;
     }
@@ -80,7 +76,6 @@ public class Dealer implements Runnable {
 
         //Create and run Players' threads
         for(Player player : players) {
-            player.setSemaphore(semaphore);
             player.setlock(lock);
             ThreadLogger playerThreadWithLogger = new ThreadLogger(player, "player-" + player.id , env.logger);
             playerThreadWithLogger.startWithLog();
