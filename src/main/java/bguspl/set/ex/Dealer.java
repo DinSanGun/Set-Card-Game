@@ -4,6 +4,7 @@ import bguspl.set.Env;
 import bguspl.set.ThreadLogger;
 
 import java.util.List;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.Collections;
@@ -44,6 +45,18 @@ public class Dealer implements Runnable {
      * The thread representing the current player.
      */
     private Thread dealerThread;
+    /**
+     * A semaphore to manage the synchronization of the threads.
+     */
+    private Semaphore semaphore;
+    /**
+     * A semaphore to manage the synchronization of the threads.
+     */
+    private Object lock;
+    /**
+     * A semaphore to manage the synchronization of the threads.
+     */
+    protected boolean dealing;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -51,6 +64,10 @@ public class Dealer implements Runnable {
         this.players = players;
 
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
+
+        semaphore = new Semaphore(1);
+        lock = new Object();
+        dealing = false;
     }
 
     /**
@@ -63,12 +80,13 @@ public class Dealer implements Runnable {
 
         //Create and run Players' threads
         for(Player player : players) {
+            player.setSemaphore(semaphore);
+            player.setlock(lock);
             ThreadLogger playerThreadWithLogger = new ThreadLogger(player, "player-" + player.id , env.logger);
             playerThreadWithLogger.startWithLog();
         }
 
         while (!shouldFinish()) { 
-
             placeCardsOnTable();
             reshuffleTime = System.currentTimeMillis() + env.config.turnTimeoutMillis + Table.SECOND_IN_MILLIS;
             timerLoop();
@@ -111,7 +129,7 @@ public class Dealer implements Runnable {
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
-
+        dealing = true;
         for(int player = Table.INIT_INDEX; player < players.length; player++){
 
             if( table.playerRequireCheck(player) ){
@@ -133,7 +151,7 @@ public class Dealer implements Runnable {
 
             }
         }
-
+        dealing = false;
     }
 
     /**
@@ -141,6 +159,7 @@ public class Dealer implements Runnable {
      */
     private void placeCardsOnTable() {
 
+        dealing = true;
         int numOfCardsOnTheTable = table.countCards();
 
         if(deck.size() - numOfCardsOnTheTable < env.config.featureSize && !shouldFinish() ) //Checking if game should terminate
@@ -155,6 +174,7 @@ public class Dealer implements Runnable {
             for(Integer slot : emptySlots)
                 table.placeCard(deck.remove(Table.INIT_INDEX) , slot);
         }
+        dealing = false;
     }
 
     /**
@@ -164,7 +184,7 @@ public class Dealer implements Runnable {
         try{
             Thread.sleep(Table.SECOND_IN_MILLIS);
         }
-        catch(InterruptedException e){}
+        catch(InterruptedException ignored){}
     }
 
     /**
@@ -178,11 +198,10 @@ public class Dealer implements Runnable {
         }
         else{
             long time = reshuffleTime - System.currentTimeMillis();
-            if(time <= 3)
+            if(time < env.config.turnTimeoutMillis)
                 env.ui.setCountdown(time , true);
             else
                 env.ui.setCountdown(time , false);
-
         }
     }
 

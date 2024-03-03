@@ -6,6 +6,7 @@ import bguspl.set.Env;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 //--------------------------------------------------------------
+import java.util.concurrent.Semaphore;
 
 /**
  * This class manages the players' threads and data
@@ -69,6 +70,15 @@ public class Player implements Runnable {
      */
     private BlockingQueue<Action> actionQueue; 
 
+    /**
+     * A semaphore handling the program's synchronization
+     */
+    private Semaphore semaphore; 
+    /**
+     * A lock object given by dealer for locking and synchronization handling.
+     */
+    private Object lock; 
+
     //===========================================================
     //                  up until here
     //===========================================================
@@ -100,6 +110,7 @@ public class Player implements Runnable {
     public void run() {
         playerThread = Thread.currentThread();
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
+        waitForDealerToDeal();
         
         if (!human)
             createArtificialIntelligence();
@@ -248,6 +259,31 @@ public class Player implements Runnable {
 //                  added by us 
 //===========================================================
 
+
+    /**
+     *  Set's the player semaphore for synchronization.
+     */
+    public void setSemaphore(Semaphore semaphore)  {
+        this.semaphore = semaphore;
+    }
+    /**
+     *  Gives the player access to a lock, for synchronization uses.
+     */
+    public void setlock(Object lock)  {
+        this.lock = lock;
+    }
+    /**
+     *  Waits if dealer is dealing cards or removing cards right now
+     */
+    public void waitForDealerToDeal()  {
+        try {
+            while (dealer.dealing) {
+                synchronized(lock){
+                    lock.wait();
+                }
+            }
+        } catch(InterruptedException ignored) {}
+    }
     /**
      * Handles placing a token by the player. Alerts dealer if 3 tokens are set.
      * @param - slot - slot to place the token.
