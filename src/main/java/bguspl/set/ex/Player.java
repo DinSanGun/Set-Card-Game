@@ -69,11 +69,6 @@ public class Player implements Runnable {
      * Holds the actions made by the key presses of the player (last 3)
      */
     private BlockingQueue<Action> actionQueue; 
-
-    /**
-     * A semaphore handling the program's synchronization
-     */
-    private Semaphore semaphore; 
     /**
      * A lock object given by dealer for locking and synchronization handling.
      */
