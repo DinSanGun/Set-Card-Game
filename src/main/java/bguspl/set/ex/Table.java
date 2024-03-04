@@ -48,7 +48,11 @@ public class Table {
     /**
      * an object used for locking on the table (for synchronization)
      */
-    protected volatile Boolean tableLocked;
+    protected Object tableLock;
+    /**
+     * an object used for locking on the table (for synchronization)
+     */
+    protected volatile boolean tableIsLocked;
 
 
     //===========================================================
@@ -68,7 +72,8 @@ public class Table {
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
 
-        tableLocked = false;
+        tableLock = new Object();
+        tableIsLocked = false;
 
         playerToTokens = new ArrayList<List<Integer>>();
 
@@ -238,16 +243,25 @@ public class Table {
     /**
      * @return - true iff the player corresponding the the parameter 'player' has a token in the slot 'slot'
      */
-    public boolean playerHasTokenInSlot(int player, int slot){
-
-        return playerToTokens.get(player).contains(slot);
-    }
-
-    /**
-     * @return - true iff the player corresponding the the parameter 'player' has a token in the slot 'slot'
-     */
     public int getPlayerNumOfTokens(int player){
 
         return playerToTokens.get(player).size();
     }
+
+    /**
+     * locks the table from actions
+     */
+    public void lockTable(){
+
+        tableIsLocked = true;
+    }
+
+    /**
+     * releases the table lock
+     */
+    public void releaseTable(){
+
+        tableIsLocked = false;
+    }
+    
 }

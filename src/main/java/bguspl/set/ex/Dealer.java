@@ -52,10 +52,6 @@ public class Dealer implements Runnable {
     /**
      * A variable indicating if the dealer is dealing right now
      */
-    protected boolean dealing;
-    /**
-     * A variable indicating if the dealer is dealing right now
-     */
     private Integer playerRequireCheck;
 
     public Dealer(Env env, Table table, Player[] players) {
@@ -68,7 +64,6 @@ public class Dealer implements Runnable {
         terminate = false;
 
         dealerLock = new Object();
-        dealing = false;
         playerRequireCheck = null;
     }
 
@@ -134,7 +129,8 @@ public class Dealer implements Runnable {
      * Checks cards should be removed from the table and removes them.
      */
     private void removeCardsFromTable() {
-        dealing = true;
+        synchronized(table.tableLock){
+            table.lockTable();
 
             if( playerRequireCheck != null ){
 
@@ -154,7 +150,9 @@ public class Dealer implements Runnable {
 
                 playerRequireCheck = null;
             }
-        dealing = false;
+            table.releaseTable();
+            table.tableLock.notify();
+        }
     }
 
     /**
@@ -162,7 +160,8 @@ public class Dealer implements Runnable {
      */
     private void placeCardsOnTable() {
 
-        synchronized(dealerLock){
+        synchronized(table.tableLock){
+            table.lockTable();
 
             int numOfCardsOnTheTable = table.countCards();
 
@@ -178,7 +177,8 @@ public class Dealer implements Runnable {
                 for(Integer slot : emptySlots)
                     table.placeCard(deck.remove(Table.INIT_INDEX) , slot);
             }
-            dealing = false;
+
+            table.releaseTable();
         }
     }
 
@@ -212,8 +212,18 @@ public class Dealer implements Runnable {
         }
 
         for(Player player : players){
-            if( player.isFrozen() ) 
-                env.ui.setFreeze(player.id , player.unfreezeTime - System.currentTimeMillis());
+            if( player.isFrozen() ) {
+
+                long timeUntilUnfrozen = player.unfreezeTime - System.currentTimeMillis();
+
+                if(timeUntilUnfrozen > 0)
+                    env.ui.setFreeze(player.id , timeUntilUnfrozen);
+                else {
+                    player.frozen = false;
+                    env.ui.setFreeze(player.id , timeUntilUnfrozen);
+                }
+
+            }
 
         }
     }
@@ -222,7 +232,7 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        synchronized(table.tableLocked){
+        synchronized(table.tableLock){
             for(Player player : players){
                 table.removeAllTokensByPlayer(player.id);
                 player.clearKeyQueue();
@@ -290,15 +300,25 @@ public class Dealer implements Runnable {
     /**
      * Wakes the dealer thread up
      */
-    public void awake(){
-        dealerThread.interrupt();
-    }
-
-    /**
-     * Wakes the dealer thread up
-     */
     public void notifyDealerAboutSet(int player){
         playerRequireCheck = player;
         dealerThread.interrupt();
     }
 }
+
+/**
+ * Player Side
+ * playerLock = true;
+ * synchronized(playerLock){
+ *      try{
+ *          while(playerLock)
+ *              wait();
+ *      } catch(InterruptedException ignored){}
+ *  }
+ * 
+ * 
+ * 
+ * Dealer side
+ * playerLock = false;
+ * playerLock.notify();
+ */
