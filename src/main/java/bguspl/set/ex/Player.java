@@ -176,7 +176,7 @@ public class Player implements Runnable {
             while (!terminate) {
                 keyPressed( (int)(Math.random() * (env.config.tableSize)) );
                 try{
-                    Thread.sleep(env.config.pointFreezeMillis);
+                    Thread.sleep(Table.SECOND_IN_MILLIS);
                 }
                 catch(InterruptedException ignored){}
             }
