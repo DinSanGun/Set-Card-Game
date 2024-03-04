@@ -19,9 +19,6 @@ import java.util.stream.Collectors;
 public class Table {
 
     public static final int INIT_INDEX = 0; //The first index to consider when iterating.
-    public static final int NOT_EXIST = -1;
-    public static final int SECOND_IN_MILLIS = 1000;
-    public static final int DELAY_IN_MILLIS = 100;
 
     /**
      * The game environment object.
@@ -162,7 +159,7 @@ public class Table {
             while(iter.hasNext()){
                 List<Integer> playerTokens = playerToTokens.get(player);
                 int indexOfToken = playerTokens.indexOf(slot);
-                if(indexOfToken != NOT_EXIST){
+                if(indexOfToken < INIT_INDEX){
                     playerTokens.remove(indexOfToken);
                     env.ui.removeToken(player, slot);
                 }
@@ -207,7 +204,7 @@ public class Table {
 
                 int indexOfToken = playerTokens.indexOf(slot);
 
-                if(indexOfToken != NOT_EXIST){
+                if(indexOfToken >= INIT_INDEX){
 
                     playerTokens.remove(indexOfToken);
                     env.ui.removeToken(player, slot);

@@ -2,8 +2,6 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
-import java.util.Iterator;
-import java.util.List;
 //------------------ our imports -------------------------------
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -71,10 +69,6 @@ public class Player implements Runnable {
      */
     private BlockingQueue<Integer> keyPressedQueue; 
     /**
-     * A lock object given by dealer for locking and synchronization handling.
-     */
-    private Object playerLock; 
-    /**
      * A variable indicating if a current player is frozen (because of point() or penalty())
      */
     protected volatile boolean frozen; 
@@ -106,7 +100,6 @@ public class Player implements Runnable {
         keyPressedQueue = new ArrayBlockingQueue<Integer>( env.config.featureSize );
         terminate = false;
         frozen = false;
-        playerLock = new Object();
     }
 
     /**
@@ -183,7 +176,7 @@ public class Player implements Runnable {
             while (!terminate) {
                 keyPressed( (int)(Math.random() * (env.config.tableSize)) );
                 try{
-                    Thread.sleep(Table.SECOND_IN_MILLIS);
+                    Thread.sleep(env.config.pointFreezeMillis);
                 }
                 catch(InterruptedException ignored){}
             }
