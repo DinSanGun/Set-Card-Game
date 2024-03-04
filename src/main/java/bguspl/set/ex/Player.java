@@ -124,6 +124,8 @@ public class Player implements Runnable {
                 finally{
                     frozen = false;
                     env.ui.setFreeze(id , Table.INIT_INDEX);
+                    if(!human)
+                        table.removeAllTokensByPlayer(id);
                 }
             }
             else{
@@ -235,8 +237,6 @@ public class Player implements Runnable {
 
         env.ui.setFreeze(id, env.config.penaltyFreezeMillis);
 
-        if(!human)
-            table.removeAllTokensByPlayer(id);
     }
 
     /**
