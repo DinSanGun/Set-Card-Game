@@ -2,11 +2,11 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 
@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class Table {
 
     public static final int INIT_INDEX = 0; //The first index to consider when iterating.
+    public static final int NOT_EXIST = -1;
     public static final int SECOND_IN_MILLIS = 1000;
 
     /**
@@ -41,17 +42,13 @@ public class Table {
     //===========================================================
 
     /**
-     * Mapping between a slot and player to the tokens placed on by the player.
+     * Mapping between a player and the tokens the player has placed
      */
-    protected final Boolean[][] slotPlayerToToken;
-    /**
-     * Mapping between a player and the number of tokens placed on the table by the player.
-     */
-    protected final int[] playerToNumOfTokens;
+    protected final List<List<Integer>> playerToTokens;
     /**
      * an object used for locking on the table (for synchronization)
      */
-    protected Object tableLock;
+    protected volatile Boolean tableLocked;
 
 
     //===========================================================
@@ -71,16 +68,12 @@ public class Table {
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
 
-        tableLock = new Object();
+        tableLocked = false;
 
-        slotPlayerToToken = new Boolean[env.config.tableSize][env.config.players];
-        playerToNumOfTokens = new int[env.config.players];
+        playerToTokens = new ArrayList<List<Integer>>();
 
-        Arrays.fill(playerToNumOfTokens , INIT_INDEX);
-
-        for(Boolean[] slot : slotPlayerToToken)
-            Arrays.fill(slot , false);
-
+        for(int i = INIT_INDEX; i < env.config.players; i++)
+            playerToTokens.add(new LinkedList<Integer>());
     }
 
     /**
@@ -135,8 +128,6 @@ public class Table {
 
         cardToSlot[card] = slot;
         slotToCard[slot] = card;
-        for(int i = INIT_INDEX; i < env.config.players; i++)
-            slotPlayerToToken[slot][i] = false;
         
         env.ui.placeCard(card, slot);
     }
@@ -153,9 +144,13 @@ public class Table {
 
         slotToCard[slot] = null;
         cardToSlot[cardToRemove] = null;
-        for(int i = INIT_INDEX; i < env.config.players; i++)
-            slotPlayerToToken[slot][i] = null;
-        
+
+        for(List<Integer> playerTokens : playerToTokens){
+            int indexOfToken = playerTokens.indexOf(slot);
+            if(indexOfToken != NOT_EXIST)
+                playerTokens.remove(indexOfToken);
+        }
+
         env.ui.removeCard(slot);
     }
 
@@ -166,12 +161,11 @@ public class Table {
      */
     public void placeToken(int player, int slot) {
 
-        if(slotToCard[slot] != null && playerToNumOfTokens[player] < 3){
+        List<Integer> playerTokens = playerToTokens.get(player);
 
+        if(slotToCard[slot] != null && playerTokens.size() < 3){
 
-                slotPlayerToToken[slot][player] = true;
-                playerToNumOfTokens[player]++;
-
+                playerTokens.add(slot);
                 env.ui.placeToken(player, slot);
         }
     }
@@ -183,13 +177,20 @@ public class Table {
      * @return       - true iff a token was successfully removed.
      */
     public boolean removeToken(int player, int slot) {
-        if(slotToCard[slot] != null){
-            slotPlayerToToken[slot][player] = false;
-            playerToNumOfTokens[player]--;
-            env.ui.removeToken(player, slot);
-            return true;
-        }
 
+        List<Integer> playerTokens = playerToTokens.get(player);
+
+        if(slotToCard[slot] != null){
+
+            int indexOfToken = playerTokens.indexOf(slot);
+
+            if(indexOfToken != NOT_EXIST){
+
+                playerTokens.remove(indexOfToken);
+                env.ui.removeToken(player, slot);
+                return true;
+            }
+        }
         return false;
     }
 
@@ -212,21 +213,17 @@ public class Table {
     }
 
     /**
-     * @return - an array of cards representing a player's set
-     * @return - null if the player's tokens is less than 3.
+     * @return - an array of cards representing the player's tokens
      */
     public int[] getPlayerCards(int player){
-        int[] cards = new int[env.config.featureSize];
-        int index = INIT_INDEX;
 
-        for(int slot = INIT_INDEX; slot < env.config.tableSize; slot++)
-            if(slotPlayerToToken != null && slotPlayerToToken[slot][player])
-                cards[index++] = slotToCard[slot];
+        List<Integer> playerTokensList = playerToTokens.get(player);
+        int[] playerCards = new int[playerTokensList.size()];
         
-        if(index != 3)
-            return null;
+        for( int i = INIT_INDEX; i < playerTokensList.size(); i++)
+            playerCards[i] = playerTokensList.get(i);
 
-        return cards;
+        return playerCards;
     }
 
     /**
@@ -235,8 +232,6 @@ public class Table {
      * @post - the player's tokens are removed from the table
      */
     public void removeAllTokensByPlayer(int player){
-        for(int i = INIT_INDEX; i < env.config.tableSize; i++)
-            slotPlayerToToken[i][player] = false;
-        playerToNumOfTokens[player] = 0;
+        playerToTokens.get(player).clear();
     }
 }
