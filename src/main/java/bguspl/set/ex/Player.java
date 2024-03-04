@@ -2,6 +2,8 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.util.Iterator;
+import java.util.List;
 //------------------ our imports -------------------------------
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -281,5 +283,4 @@ public class Player implements Runnable {
     public boolean isFrozen()  {
         return frozen;
     }
-
 }

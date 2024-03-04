@@ -231,6 +231,7 @@ public class Dealer implements Runnable {
             for(Player player : players){
                 player.clearKeyQueue();
             }
+
             for(int slot = Table.INIT_INDEX; slot < env.config.tableSize; slot++){
                 if(table.slotToCard[slot] != null){
                     deck.add(table.slotToCard[slot]);

@@ -168,16 +168,6 @@ public class Table {
                 }
                 player++;
             }
-
-            // for(int player = INIT_INDEX; player < playerToTokens.size(); player++){
-
-            //     List<Integer> playerTokens = playerToTokens.get(player);
-            //     int indexOfToken = playerTokens.indexOf(slot);
-            //     if(indexOfToken != NOT_EXIST){
-            //         playerTokens.remove(indexOfToken);
-            //         env.ui.removeToken(player, slot);
-            //     }
-            // }
         }
 
         env.ui.removeCard(slot);
@@ -264,11 +254,6 @@ public class Table {
                 playerCards[index++] = slotToCard[slot];
             }
 
-            // for( int i = INIT_INDEX; i < playerTokensList.size(); i++){
-            //     slot = playerTokensList.get(i);
-            //     playerCards[i] = slotToCard[slot];
-            // }
-
             return playerCards;
         }
     }
@@ -285,7 +270,9 @@ public class Table {
             Iterator<Integer> iter = playerTokens.iterator();
 
             while(iter.hasNext())
-                removeToken(player, iter.next());
+                env.ui.removeToken(player, iter.next());
+
+            playerTokens.clear();
         }
     }
 
