@@ -4,6 +4,7 @@ import bguspl.set.Env;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -20,6 +21,7 @@ public class Table {
     public static final int INIT_INDEX = 0; //The first index to consider when iterating.
     public static final int NOT_EXIST = -1;
     public static final int SECOND_IN_MILLIS = 1000;
+    public static final int DELAY_IN_MILLIS = 100;
 
     /**
      * The game environment object.
@@ -75,10 +77,12 @@ public class Table {
         tableLock = new Object();
         tableIsLocked = false;
 
-        playerToTokens = new ArrayList<List<Integer>>();
+        synchronized(tableLock){
+            playerToTokens = new ArrayList<List<Integer>>();
 
-        for(int i = INIT_INDEX; i < env.config.players; i++)
-            playerToTokens.add(new LinkedList<Integer>());
+            for(int i = INIT_INDEX; i < env.config.players; i++)
+                playerToTokens.add(new LinkedList<Integer>());
+        }
     }
 
     /**
@@ -150,10 +154,30 @@ public class Table {
         slotToCard[slot] = null;
         cardToSlot[cardToRemove] = null;
 
-        for(List<Integer> playerTokens : playerToTokens){
-            int indexOfToken = playerTokens.indexOf(slot);
-            if(indexOfToken != NOT_EXIST)
-                playerTokens.remove(indexOfToken);
+        synchronized(tableLock){
+
+            Iterator<List<Integer>> iter = playerToTokens.iterator();
+            int player = INIT_INDEX;
+
+            while(iter.hasNext()){
+                List<Integer> playerTokens = playerToTokens.get(player);
+                int indexOfToken = playerTokens.indexOf(slot);
+                if(indexOfToken != NOT_EXIST){
+                    playerTokens.remove(indexOfToken);
+                    env.ui.removeToken(player, slot);
+                }
+                player++;
+            }
+
+            // for(int player = INIT_INDEX; player < playerToTokens.size(); player++){
+
+            //     List<Integer> playerTokens = playerToTokens.get(player);
+            //     int indexOfToken = playerTokens.indexOf(slot);
+            //     if(indexOfToken != NOT_EXIST){
+            //         playerTokens.remove(indexOfToken);
+            //         env.ui.removeToken(player, slot);
+            //     }
+            // }
         }
 
         env.ui.removeCard(slot);
@@ -166,12 +190,15 @@ public class Table {
      */
     public void placeToken(int player, int slot) {
 
-        List<Integer> playerTokens = playerToTokens.get(player);
+        synchronized(tableLock){
 
-        if(slotToCard[slot] != null && playerTokens.size() < 3){
+            List<Integer> playerTokens = playerToTokens.get(player);
 
-                playerTokens.add(slot);
-                env.ui.placeToken(player, slot);
+            if(slotToCard[slot] != null && playerTokens.size() < 3){
+
+                    playerTokens.add(slot);
+                    env.ui.placeToken(player, slot);
+            }
         }
     }
 
@@ -183,20 +210,22 @@ public class Table {
      */
     public boolean removeToken(int player, int slot) {
 
-        List<Integer> playerTokens = playerToTokens.get(player);
+        synchronized(tableLock){
 
-        if(slotToCard[slot] != null){
+            List<Integer> playerTokens = playerToTokens.get(player);
+            if(slotToCard[slot] != null){
 
-            int indexOfToken = playerTokens.indexOf(slot);
+                int indexOfToken = playerTokens.indexOf(slot);
 
-            if(indexOfToken != NOT_EXIST){
+                if(indexOfToken != NOT_EXIST){
 
-                playerTokens.remove(indexOfToken);
-                env.ui.removeToken(player, slot);
-                return true;
+                    playerTokens.remove(indexOfToken);
+                    env.ui.removeToken(player, slot);
+                    return true;
+                }
             }
+            return false;
         }
-        return false;
     }
 
 
@@ -222,13 +251,26 @@ public class Table {
      */
     public int[] getPlayerCards(int player){
 
-        List<Integer> playerTokensList = playerToTokens.get(player);
-        int[] playerCards = new int[playerTokensList.size()];
-        
-        for( int i = INIT_INDEX; i < playerTokensList.size(); i++)
-            playerCards[i] = playerTokensList.get(i);
+        synchronized(tableLock){
+            List<Integer> playerTokensList = playerToTokens.get(player);
+            int[] playerCards = new int[playerTokensList.size()];
+            int slot;
+            
+            Iterator<Integer> iter = playerTokensList.iterator();
+            int index = INIT_INDEX;
 
-        return playerCards;
+            while(iter.hasNext()){
+                slot = iter.next();
+                playerCards[index++] = slotToCard[slot];
+            }
+
+            // for( int i = INIT_INDEX; i < playerTokensList.size(); i++){
+            //     slot = playerTokensList.get(i);
+            //     playerCards[i] = slotToCard[slot];
+            // }
+
+            return playerCards;
+        }
     }
 
     /**
@@ -237,7 +279,14 @@ public class Table {
      * @post - the player's tokens are removed from the table
      */
     public void removeAllTokensByPlayer(int player){
-        playerToTokens.get(player).clear();
+
+        synchronized(tableLock){
+            List<Integer> playerTokens = playerToTokens.get(player);
+            Iterator<Integer> iter = playerTokens.iterator();
+
+            while(iter.hasNext())
+                removeToken(player, iter.next());
+        }
     }
 
     /**
@@ -245,7 +294,7 @@ public class Table {
      */
     public int getPlayerNumOfTokens(int player){
 
-        return playerToTokens.get(player).size();
+            return playerToTokens.get(player).size();
     }
 
     /**
@@ -264,4 +313,11 @@ public class Table {
         tableIsLocked = false;
     }
     
+    /**
+     * @return - true iff the player corresponding the the parameter 'player' has a token in the slot 'slot'
+     */
+    public boolean playerHasTokenInSlot(int player, int slot){
+
+            return playerToTokens.get(player).contains(slot);
+    }
 }

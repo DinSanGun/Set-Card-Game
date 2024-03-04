@@ -142,7 +142,7 @@ public class Dealer implements Runnable {
 
                         players[playerRequireCheck].point();
                         for(int card : setToTest)
-                            table.removeCard(card);
+                            table.removeCard( table.cardToSlot[card] );
                     }
                     else
                         players[playerRequireCheck].penalty();
@@ -217,12 +217,7 @@ public class Dealer implements Runnable {
                 long timeUntilUnfrozen = player.unfreezeTime - System.currentTimeMillis();
 
                 if(timeUntilUnfrozen > 0)
-                    env.ui.setFreeze(player.id , timeUntilUnfrozen);
-                else {
-                    player.frozen = false;
-                    env.ui.setFreeze(player.id , timeUntilUnfrozen);
-                }
-
+                    env.ui.setFreeze(player.id , timeUntilUnfrozen + Table.SECOND_IN_MILLIS);
             }
 
         }
@@ -234,7 +229,6 @@ public class Dealer implements Runnable {
     private void removeAllCardsFromTable() {
         synchronized(table.tableLock){
             for(Player player : players){
-                table.removeAllTokensByPlayer(player.id);
                 player.clearKeyQueue();
             }
             for(int slot = Table.INIT_INDEX; slot < env.config.tableSize; slot++){

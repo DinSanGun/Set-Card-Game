@@ -126,6 +126,10 @@ public class Player implements Runnable {
                     long sleepTime = unfreezeTime - System.currentTimeMillis();
                     Thread.sleep(sleepTime);
                 } catch(InterruptedException ignored){}
+                finally{
+                    frozen = false;
+                    env.ui.setFreeze(id , Table.INIT_INDEX);
+                }
             }
             else{
 
@@ -135,7 +139,7 @@ public class Player implements Runnable {
                         try{
                             int slot = keyPressedQueue.take();
 
-                            if( playerHasTokenInSlot(slot) )
+                            if( table.playerHasTokenInSlot(id , slot) )
                                 table.removeToken(id, slot);    
 
                             else if(table.getPlayerNumOfTokens(id) < 3) {                    
@@ -214,17 +218,16 @@ public class Player implements Runnable {
      * @post - the player's score is updated in the ui.
      */
     public void point() {
+
+            table.lockTable();
+            frozen = true;
+            unfreezeTime = System.currentTimeMillis() + env.config.penaltyFreezeMillis;
+        
+            int ignored = table.countCards(); // this part is just for demonstration in the unit tests
+            env.ui.setScore(id, ++score);
+            env.ui.setFreeze(id, env.config.pointFreezeMillis);
     
-        int ignored = table.countCards(); // this part is just for demonstration in the unit tests
-        env.ui.setScore(id, ++score);
-
-        env.ui.setFreeze(id, env.config.pointFreezeMillis);
-
-        unfreezeTime = System.currentTimeMillis() + env.config.pointFreezeMillis;
-        frozen = true;
-
-        table.removeAllTokensByPlayer(id);
-
+            table.removeAllTokensByPlayer(id);
     }
 
     /**
@@ -239,7 +242,6 @@ public class Player implements Runnable {
 
         if(!human)
             table.removeAllTokensByPlayer(id);
-        
     }
 
     /**
@@ -280,11 +282,4 @@ public class Player implements Runnable {
         return frozen;
     }
 
-    /**
-     * @return - true iff the player corresponding the the parameter 'player' has a token in the slot 'slot'
-     */
-    public boolean playerHasTokenInSlot(int slot){
-
-        return table.playerToTokens.get(id).contains(slot);
-    }
 }
