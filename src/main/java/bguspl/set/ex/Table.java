@@ -199,8 +199,7 @@ public class Table {
     public boolean removeToken(int player, int slot) {
 
         synchronized(tableLock){
-            hints();
-
+            
             List<Integer> playerTokens = playerToTokens.get(player);
             if(slotToCard[slot] != null){
 
