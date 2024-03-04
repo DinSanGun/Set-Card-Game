@@ -234,4 +234,20 @@ public class Table {
     public void removeAllTokensByPlayer(int player){
         playerToTokens.get(player).clear();
     }
+
+    /**
+     * @return - true iff the player corresponding the the parameter 'player' has a token in the slot 'slot'
+     */
+    public boolean playerHasTokenInSlot(int player, int slot){
+
+        return playerToTokens.get(player).contains(slot);
+    }
+
+    /**
+     * @return - true iff the player corresponding the the parameter 'player' has a token in the slot 'slot'
+     */
+    public int getPlayerNumOfTokens(int player){
+
+        return playerToTokens.get(player).size();
+    }
 }

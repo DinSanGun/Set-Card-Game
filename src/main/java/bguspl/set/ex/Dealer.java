@@ -4,11 +4,9 @@ import bguspl.set.Env;
 import bguspl.set.ThreadLogger;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 
 
@@ -224,12 +222,12 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
-        synchronized(table.tableLock){
+        synchronized(table.tableLocked){
             for(Player player : players){
                 table.removeAllTokensByPlayer(player.id);
                 player.clearKeyQueue();
             }
-            for(int slot = table.INIT_INDEX; slot < env.config.tableSize; slot++){
+            for(int slot = Table.INIT_INDEX; slot < env.config.tableSize; slot++){
                 if(table.slotToCard[slot] != null){
                     deck.add(table.slotToCard[slot]);
                     table.removeCard(slot);
@@ -244,7 +242,7 @@ public class Dealer implements Runnable {
     private void announceWinners() {
         List<Integer> winnersID = new ArrayList<Integer>();
 
-        int max = table.INIT_INDEX;
+        int max = Table.INIT_INDEX;
 
         for(Player player : players)
             if(player.score() > max)
@@ -255,7 +253,7 @@ public class Dealer implements Runnable {
                 winnersID.add(player.id);
         
         int[] winnersArray = new int[winnersID.size()];
-        for(int i = table.INIT_INDEX; i < winnersID.size(); i++)
+        for(int i = Table.INIT_INDEX; i < winnersID.size(); i++)
             winnersArray[i] = winnersID.remove(Table.INIT_INDEX);
 
         env.ui.announceWinner(winnersArray);

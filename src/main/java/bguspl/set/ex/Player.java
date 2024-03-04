@@ -129,13 +129,13 @@ public class Player implements Runnable {
 
                     int slot = keyPressedQueue.take();
 
-                    if( table.slotPlayerToToken[slot][id] )
+                    if( table.playerHasTokenInSlot(id, slot) )
                         table.removeToken(id, slot);    
 
-                    else if(table.playerToNumOfTokens[id] < 3) {                    
+                    else if(table.getPlayerNumOfTokens(id) < 3) {                    
                         table.placeToken(id, slot);
 
-                        if(table.playerToNumOfTokens[id] == 3){
+                        if(table.getPlayerNumOfTokens(id) == 3){
                                 dealer.notifyDealerAboutSet(id);
 
                             synchronized(playerLock){
