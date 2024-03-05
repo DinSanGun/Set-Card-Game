@@ -178,6 +178,16 @@ public class Dealer implements Runnable {
                     table.placeCard(deck.remove(Table.INIT_INDEX) , slot);
             }
 
+            //Checking if exist a valid set on the table - if not replacing all the cards
+            List<Integer> cardsOnTable = new ArrayList<Integer>();
+
+            for(int slot = Table.INIT_INDEX; slot < env.config.tableSize; slot++)
+                if(table.slotToCard[slot] != null)
+                    cardsOnTable.add(table.slotToCard[slot]);
+
+            if( env.util.findSets(cardsOnTable, 1).size() == 0 )
+                removeAllCardsFromTable();
+
             table.releaseTable();
         }
     }
@@ -227,7 +237,9 @@ public class Dealer implements Runnable {
      * Returns all the cards from the table to the deck.
      */
     private void removeAllCardsFromTable() {
+
         synchronized(table.tableLock){
+            table.lockTable();
             for(Player player : players){
                 player.clearKeyQueue();
             }
@@ -238,6 +250,7 @@ public class Dealer implements Runnable {
                     table.removeCard(slot);
                 }
             }
+            table.releaseTable();
         }
     }
 

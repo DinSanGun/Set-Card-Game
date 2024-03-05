@@ -119,7 +119,8 @@ public class Player implements Runnable {
             if(frozen){
                 try{
                     long sleepTime = unfreezeTime - System.currentTimeMillis();
-                    Thread.sleep(sleepTime);
+                    if(sleepTime > Table.INIT_INDEX)
+                        Thread.sleep(sleepTime);
                 } catch(InterruptedException ignored){}
                 finally{
                     frozen = false;
@@ -177,10 +178,10 @@ public class Player implements Runnable {
 
             while (!terminate) {
                 keyPressed( (int)(Math.random() * (env.config.tableSize)) );
-                try{
-                    Thread.sleep(Table.SECOND_IN_MILLIS);
-                }
-                catch(InterruptedException ignored){}
+                // try{
+                //     Thread.sleep(Table.SECOND_IN_MILLIS);
+                // }
+                // catch(InterruptedException ignored){}
             }
 
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
