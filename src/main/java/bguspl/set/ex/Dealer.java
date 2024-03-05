@@ -217,7 +217,7 @@ public class Dealer implements Runnable {
                 long timeUntilUnfrozen = player.unfreezeTime - System.currentTimeMillis();
 
                 if(timeUntilUnfrozen > 0)
-                    env.ui.setFreeze(player.id , timeUntilUnfrozen + Table.SECOND_IN_MILLIS);
+                    env.ui.setFreeze(player.id , timeUntilUnfrozen + Table.SECOND_IN_MILLIS); //Adding 1 second for display (otherwise clock start at 2 when penalty timeout is set (for instance))
             }
 
         }

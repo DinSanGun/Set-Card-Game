@@ -158,7 +158,7 @@ public class Table {
             int player = INIT_INDEX;
 
             while(iter.hasNext()){
-                List<Integer> playerTokens = playerToTokens.get(player);
+                List<Integer> playerTokens = iter.next();
                 int indexOfToken = playerTokens.indexOf(slot);
                 if(indexOfToken >= INIT_INDEX){
                     playerTokens.remove(indexOfToken);
@@ -199,7 +199,7 @@ public class Table {
     public boolean removeToken(int player, int slot) {
 
         synchronized(tableLock){
-            
+            hints();
             List<Integer> playerTokens = playerToTokens.get(player);
             if(slotToCard[slot] != null){
 

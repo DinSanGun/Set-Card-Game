@@ -218,11 +218,10 @@ public class Player implements Runnable {
 
             table.lockTable();
             frozen = true;
-            unfreezeTime = System.currentTimeMillis() + env.config.penaltyFreezeMillis;
+            unfreezeTime = System.currentTimeMillis() + env.config.pointFreezeMillis;
         
             int ignored = table.countCards(); // this part is just for demonstration in the unit tests
             env.ui.setScore(id, ++score);
-            env.ui.setFreeze(id, env.config.pointFreezeMillis);
     
             table.removeAllTokensByPlayer(id);
     }
@@ -234,9 +233,6 @@ public class Player implements Runnable {
         
         unfreezeTime = System.currentTimeMillis() + env.config.penaltyFreezeMillis;
         frozen = true;
-
-        env.ui.setFreeze(id, env.config.penaltyFreezeMillis);
-
     }
 
     /**
