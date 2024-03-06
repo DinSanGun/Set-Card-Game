@@ -68,6 +68,7 @@ public class Player implements Runnable {
      * Holds the actions made by the key presses of the player (last 3)
      */
     private BlockingQueue<Integer> keyPressedQueue; 
+
     /**
      * A variable indicating if a current player is frozen (because of point() or penalty())
      */
@@ -107,56 +108,22 @@ public class Player implements Runnable {
      */
     @Override
     public void run() {
+
         playerThread = Thread.currentThread();
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
         
         if (!human)
             createArtificialIntelligence();
 
+        while (!terminate) { //Main loop of player
 
-        while (!terminate) {
-
-            if(frozen){
-                try{
-                    long sleepTime = unfreezeTime - System.currentTimeMillis();
-                    if(sleepTime > Table.INIT_INDEX)
-                        Thread.sleep(sleepTime);
-                } catch(InterruptedException ignored){}
-                finally{
-                    frozen = false;
-                    env.ui.setFreeze(id , Table.INIT_INDEX);
-                    if(!human)
-                        table.removeAllTokensByPlayer(id);
-                }
-            }
-            else{
-
-                synchronized(table.tableLock){
-                    if( !keyPressedQueue.isEmpty() ){
-
-                        try{
-                            int slot = keyPressedQueue.take();
-
-                            if( table.playerHasTokenInSlot(id , slot) )
-                                table.removeToken(id, slot);    
-
-                            else if(table.getPlayerNumOfTokens(id) < 3) {                    
-                                table.placeToken(id, slot);
-
-                                if(table.getPlayerNumOfTokens(id) == 3){
-                                        table.lockTable();
-                                        dealer.notifyDealerAboutSet(id);
-                                        //WAITS FOR DEALER
-                                        while(table.tableIsLocked)
-                                            table.tableLock.wait();
-                                }
-                            }
-                        } catch(InterruptedException ignored){}
-                    }
-                }
-            }
+            if(frozen)
+                playerIsFrozen();
+            else
+                playerMakeAction(); 
         }
 
+        //Game is finished
         if (!human) {
             try { 
                 aiThread.join(); 
@@ -176,13 +143,8 @@ public class Player implements Runnable {
 
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
 
-            while (!terminate) {
+            while (!terminate) //Simulates keypresses
                 keyPressed( (int)(Math.random() * (env.config.tableSize)) );
-                // try{
-                //     Thread.sleep(Table.SECOND_IN_MILLIS);
-                // }
-                // catch(InterruptedException ignored){}
-            }
 
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
 
@@ -204,7 +166,7 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        //Check if table is locked or player is locked, and card exists.
+        //Check if table and player are unlocked, and card exists in the slot pressed.
         if( !table.tableIsLocked && !frozen && table.slotToCard[slot] != null )
             keyPressedQueue.offer(slot);
     }
@@ -217,7 +179,6 @@ public class Player implements Runnable {
      */
     public void point() {
 
-            table.lockTable();
             frozen = true;
             unfreezeTime = System.currentTimeMillis() + env.config.pointFreezeMillis;
         
@@ -248,18 +209,6 @@ public class Player implements Runnable {
 //                  added by us 
 //===========================================================
 
-    // /**
-    //  *  Waits if dealer is dealing cards or removing cards right now
-    //  */
-    // public void waitForDealer()  {
-    //     synchronized()
-    //     try {
-    //         while (dealer.playerRequireCheck != null) {
-    //                 playerLock.wait();
-    //             }
-    //         }
-    //     } catch(InterruptedException ignored) {}
-    // }
     /**
      * @post - the key pressed queue is empty
      */
@@ -272,5 +221,55 @@ public class Player implements Runnable {
      */
     public boolean isFrozen()  {
         return frozen;
+    }
+
+    /**
+     *Implements player's behaviour when frozen - sleep then awake and update the UI
+     */
+    public void playerIsFrozen(){
+
+        try{ //Sleep for the appropriate freeze time
+            long sleepTime = unfreezeTime - System.currentTimeMillis();
+            if(sleepTime > Table.INIT_INDEX)
+                Thread.sleep(sleepTime);
+        } catch(InterruptedException ignored){}
+        finally { //Unfreezes and updates UI
+            frozen = false;
+            env.ui.setFreeze(id , Table.INIT_INDEX);
+            if(!human)
+                table.removeAllTokensByPlayer(id);
+        }
+    }
+
+    /**
+     *Implements player's behaviour upon regular turn - 
+     * place/remove tokens, notify dealer when needed
+     */
+    public void playerMakeAction() {
+        
+        synchronized(table.tableLock){
+
+            if( !keyPressedQueue.isEmpty() ){
+
+                try{
+                    int slot = keyPressedQueue.take();
+
+                    if( table.playerHasTokenInSlot(id , slot) )//If player has token in the slot - removes it
+                        table.removeToken(id, slot);    
+
+                    else if(table.getPlayerNumOfTokens(id) < 3) { //If player can place a token - places it                 
+                        table.placeToken(id, slot);
+
+                        if(table.getPlayerNumOfTokens(id) == 3){ //If player has placed 3 tokens - 
+                                table.lockTable();                // notifies dealer and waits for response
+                                dealer.notifyDealerAboutSet(id);
+                                //waits for dealer to check the set
+                                while(table.tableIsLocked)
+                                    table.tableLock.wait();
+                        }
+                    }
+                } catch(InterruptedException ignored){}
+            }
+        }
     }
 }

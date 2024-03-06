@@ -46,11 +46,11 @@ public class Table {
      */
     protected final List<List<Integer>> playerToTokens;
     /**
-     * an object used for locking on the table (for synchronization)
+     * an object used for synchronizing threads' actions on the table.
      */
     protected Object tableLock;
     /**
-     * an object used for locking on the table (for synchronization)
+     * an object used for locking on the table from key presses
      */
     protected volatile boolean tableIsLocked;
 
@@ -75,6 +75,8 @@ public class Table {
         tableLock = new Object();
         tableIsLocked = false;
 
+        // Each action which is performed on the playerToTokens object is synchronized
+        //  To prevent concurrent modification.
         synchronized(tableLock){
             playerToTokens = new ArrayList<List<Integer>>();
 
@@ -200,7 +202,7 @@ public class Table {
 
         synchronized(tableLock){
             
-            List<Integer> playerTokens = playerToTokens.get(player);
+            List<Integer> playerTokens = playerToTokens.get(player);//Getting the player's tokens' list
             if(slotToCard[slot] != null){
 
                 int indexOfToken = playerTokens.indexOf(slot);
@@ -276,7 +278,7 @@ public class Table {
     }
 
     /**
-     * @return - true iff the player corresponding the the parameter 'player' has a token in the slot 'slot'
+     * @return - the number of tokens the player currently has on the table.
      */
     public int getPlayerNumOfTokens(int player){
 
@@ -284,7 +286,7 @@ public class Table {
     }
 
     /**
-     * locks the table from actions
+     * locks the table from keypressses
      */
     public void lockTable(){
 
@@ -292,7 +294,7 @@ public class Table {
     }
 
     /**
-     * releases the table lock
+     * releases the table for keypresses
      */
     public void releaseTable(){
 
@@ -300,7 +302,7 @@ public class Table {
     }
     
     /**
-     * @return - true iff the player corresponding the the parameter 'player' has a token in the slot 'slot'
+     * @return - true iff the player corresponding the the player has a token in the slot.
      */
     public boolean playerHasTokenInSlot(int player, int slot){
 
