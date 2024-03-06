@@ -55,6 +55,11 @@ public class Dealer implements Runnable {
      */
     private Integer playerRequireCheck;
 
+    /**
+     * A variable indicating whether hints were printed already in this turn.
+     */
+    private boolean shouldPrintHints;
+
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
@@ -66,6 +71,8 @@ public class Dealer implements Runnable {
 
         dealerLock = new Object();
         playerRequireCheck = null;
+
+        shouldPrintHints = false;
     }
 
     /**
@@ -90,6 +97,7 @@ public class Dealer implements Runnable {
             removeAllCardsFromTable();
         }
         announceWinners();
+        endGamePause();
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
     }
 
@@ -99,6 +107,7 @@ public class Dealer implements Runnable {
     private void timerLoop() {
         while (!terminate && System.currentTimeMillis() < reshuffleTime) {
             sleepUntilWokenOrTimeout();
+            printHints();
             updateTimerDisplay(false);
             removeCardsFromTable();
             placeCardsOnTable();
@@ -169,8 +178,12 @@ public class Dealer implements Runnable {
                 for(Integer slot : emptySlots)
                     table.placeCard(deck.remove(Table.INIT_INDEX) , slot);
                 
-                if(!emptySlots.isEmpty()) //Resetting the timer when cards are dealt to the table
-                    updateTimerDisplay(true);
+                if(!emptySlots.isEmpty()) {
+                    updateTimerDisplay(true); //Resetting the timer when cards are dealt to the table
+                    if(env.config.hints) //If hints are allowed - displays them 10 seconds before end of turn
+                        shouldPrintHints = true;
+                } 
+
             }
 
             //Checking if a valid set exists on the table - if not replacing all the cards
@@ -312,4 +325,28 @@ public class Dealer implements Runnable {
         playerRequireCheck = player;
         dealerThread.interrupt();
     }
+
+    /**
+     * Print hints to the console if allowed
+     */
+    public void printHints(){
+        if(shouldPrintHints){
+            table.hints();
+            shouldPrintHints = false; //So the dealer won't print it more than once per turn.
+        }
+    }
+
+    /**
+     * Pauses for the required time in the end of a game.
+     */
+    public void endGamePause(){
+        synchronized(dealerLock){
+            try{
+                dealerLock.wait(env.config.endGamePauseMillies);
+            }
+            catch(InterruptedException ignored){}
+        }
+    }
+
+
 }

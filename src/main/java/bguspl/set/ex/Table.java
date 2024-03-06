@@ -19,7 +19,8 @@ import java.util.stream.Collectors;
 public class Table {
 
     public static final int INIT_INDEX = 0; //The first index to consider when iterating.
-    public static final int SECOND_IN_MILLIS = 1000;
+    public static final long SECOND_IN_MILLIS = 1000;
+    public static final long REMAINING_TIME_IN_MILLIS_FOR_HINTS = 10000;
 
     /**
      * The game environment object.
