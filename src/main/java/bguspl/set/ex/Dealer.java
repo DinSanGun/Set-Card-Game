@@ -143,6 +143,8 @@ public class Dealer implements Runnable {
                         players[playerRequireCheck].point();
                         for(int card : setToTest)
                             table.removeCard( table.cardToSlot[card] );
+                        
+                        updateTimerDisplay(true);
                     }
                     else
                         players[playerRequireCheck].penalty();
